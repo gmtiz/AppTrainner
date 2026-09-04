@@ -1,0 +1,1929 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AppTrainner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chivo:wght@600;700;900&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --papel:#EDF0F3;        /* hoja cuadriculada */
+    --grilla:#DDE3E9;
+    --hoja:#FFFFFF;
+    --tinta:#0F2231;        /* azul tinta, casi negro pero con temperatura */
+    --gris:#5E7185;
+    --borde:#D3DBE3;
+    --cobalto:#1B5FD0;      /* la lapicera: acciones y números */
+    --cobalto-suave:#E8EFFB;
+    --carmin:#C42B3E;       /* solo errores y borrados */
+    --carmin-suave:#FBEAEC;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background-color:var(--papel);
+    background-image:
+      linear-gradient(var(--grilla) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grilla) 1px, transparent 1px);
+    background-size:28px 28px;
+    background-position:-1px -1px;
+    font-family:'Public Sans',system-ui,-apple-system,sans-serif;
+    color:var(--tinta);
+    font-size:16px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{margin:0;font-family:'Chivo',system-ui,sans-serif;font-weight:700;letter-spacing:-.02em;line-height:1.15}
+  h1{font-size:25px} h2{font-size:24px} h3{font-size:17px}
+  p{margin:0}
+  a{color:var(--cobalto)}
+
+  /* ---------- barra superior ---------- */
+  .topbar{
+    background:var(--tinta);color:#fff;padding:15px 16px 0;position:sticky;top:0;z-index:20;
+    border-bottom:3px solid var(--cobalto);
+  }
+  .brand{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+  .brand h1{color:#fff;font-family:'Chivo',sans-serif;font-weight:900;font-size:20px;letter-spacing:-.03em}
+  .brand .hola{color:#8FA6BA;font-size:14px}
+  .brand button{
+    margin-left:auto;background:none;border:0;color:#8FA6BA;font-family:inherit;
+    font-size:13.5px;font-weight:600;cursor:pointer;padding:6px 2px;border-bottom:1.5px solid transparent;
+  }
+  .brand button:hover{color:#fff;border-bottom-color:#8FA6BA}
+  .tabs{display:flex;gap:20px;overflow-x:auto}
+  .tab{
+    flex:0 0 auto;background:none;border:0;color:#8FA6BA;font-family:'Chivo',sans-serif;
+    font-size:15px;font-weight:600;padding:6px 0 11px;cursor:pointer;
+    border-bottom:3px solid transparent;margin-bottom:-3px;white-space:nowrap;letter-spacing:-.01em;
+  }
+  .tab.on{color:#fff;border-bottom-color:#fff}
+
+  .wrap{max-width:720px;margin:0 auto;padding:22px 16px 72px}
+
+  /* ---------- hojas ---------- */
+  .card{
+    background:var(--hoja);border:1px solid var(--borde);border-left:3px solid var(--cobalto);
+    border-radius:4px;padding:16px 18px;margin-bottom:10px;
+  }
+  .card.tap{cursor:pointer}
+  .card.tap:hover{border-color:var(--cobalto)}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .suave{color:var(--gris);font-size:14.5px}
+  .chico{font-size:13px;color:var(--gris)}
+
+  /* ---------- botones ---------- */
+  button{font-family:inherit}
+  .btn{
+    background:var(--cobalto);color:#fff;border:0;border-radius:4px;padding:13px 18px;
+    font-family:'Chivo',sans-serif;font-size:15px;font-weight:700;letter-spacing:-.01em;
+    cursor:pointer;width:100%;
+  }
+  .btn:hover{background:#144CAB}
+  .btn.naranja{background:var(--tinta)}
+  .btn.naranja:hover{background:#1B3648}
+  .btn.linea{background:var(--hoja);color:var(--tinta);border:1.5px solid var(--borde)}
+  .btn.linea:hover{border-color:var(--tinta)}
+  .btn.riesgo{background:var(--hoja);color:var(--carmin);border:1.5px solid #EBC8CD}
+  .btn.riesgo:hover{background:var(--carmin-suave)}
+  .btn.chico{width:auto;padding:8px 13px;font-size:13.5px}
+  .btn:disabled{opacity:.4;cursor:default}
+  .btn:disabled:hover{background:var(--cobalto)}
+  .btn.linea:disabled:hover{background:var(--hoja);border-color:var(--borde)}
+  :focus-visible{outline:2.5px solid var(--cobalto);outline-offset:2px}
+
+  /* ---------- formularios ---------- */
+  input,select,textarea{
+    font-family:inherit;font-size:16px;color:var(--tinta);width:100%;padding:11px 12px;
+    border:1.5px solid var(--borde);border-radius:4px;background:var(--hoja);margin-top:6px;
+  }
+  input:focus,select:focus,textarea:focus{border-color:var(--cobalto)}
+  input[type=file]{padding:9px;font-size:14px}
+  label{display:block;font-size:13.5px;font-weight:600;margin-bottom:14px;color:var(--tinta)}
+
+  /* ---------- etiquetas ---------- */
+  .globo{
+    display:inline-block;font-family:'Chivo',sans-serif;font-size:12.5px;font-weight:600;
+    padding:2px 9px;border-radius:3px;background:#EAEEF2;color:var(--gris);
+  }
+  .globo.ok{background:var(--cobalto-suave);color:var(--cobalto)}
+  .globo.aviso{background:#FFF3D9;color:#8A5B00}
+  .globo.alerta{background:var(--carmin-suave);color:var(--carmin)}
+
+  .vacio{
+    background:var(--hoja);border:1px dashed var(--borde);border-radius:4px;
+    padding:28px 20px;text-align:center;
+  }
+  .vacio p{margin-bottom:14px;color:var(--gris)}
+
+  /* ---------- cinta métrica del plan ---------- */
+  .plan{margin-top:12px}
+  .cinta{
+    position:relative;height:26px;background:var(--hoja);border:1px solid var(--borde);
+    border-radius:3px;overflow:hidden;
+  }
+  .cinta .lleno{position:absolute;inset:0 auto 0 0;background:var(--cobalto-suave);border-right:2px solid var(--cobalto)}
+  .cinta .marca{position:absolute;top:0;bottom:0;width:1px;background:var(--borde)}
+  .cinta .marca.alta{background:#B9C4CE}
+  .cinta.cerca .lleno{background:#FFF3D9;border-right-color:#D99B12}
+  .cinta.cumplido .lleno{background:var(--carmin-suave);border-right-color:var(--carmin)}
+  .plan .pie{display:flex;justify-content:space-between;margin-top:5px}
+  .plan .pie b{font-family:'Chivo',sans-serif;font-size:13px;font-weight:700}
+  .plan .pie span{font-size:12.5px;color:var(--gris)}
+
+  .recordatorio{
+    background:var(--hoja);border:1px solid var(--borde);border-top:3px solid #D99B12;
+    border-radius:4px;padding:14px 16px;margin-bottom:18px;
+  }
+  .recordatorio h3{font-size:15.5px;margin-bottom:3px}
+
+  /* ---------- días y ejercicios ---------- */
+  .dia{background:var(--hoja);border:1px solid var(--borde);border-radius:4px;padding:16px 18px;margin-bottom:12px}
+  .ej{border-top:1px solid var(--borde);padding:12px 0;background:var(--hoja)}
+  .ej.arrastrando{opacity:.35}
+  .ej-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+  .mango{cursor:grab;color:#B9C4CE;font-size:17px;line-height:1.3;padding-right:8px;user-select:none}
+  .video{color:var(--cobalto);font-weight:600;font-size:13.5px;text-decoration:none;border-bottom:1px solid #B9CCEC}
+  .video:hover{border-bottom-color:var(--cobalto)}
+  .series{
+    font-family:'Chivo',sans-serif;font-size:25px;font-weight:900;letter-spacing:-.03em;
+    color:var(--tinta);white-space:nowrap;font-variant-numeric:tabular-nums;
+  }
+  .mini{
+    background:var(--hoja);border:1.5px solid var(--borde);border-radius:3px;width:29px;height:29px;
+    cursor:pointer;font-size:14px;color:var(--gris);padding:0;
+  }
+  .mini:hover:not(:disabled){border-color:var(--tinta);color:var(--tinta)}
+  .mini:disabled{opacity:.35;cursor:default}
+
+  .lista{border:1.5px solid var(--borde);border-radius:4px;margin-top:8px;background:var(--hoja);overflow:hidden}
+  .op{
+    padding:12px 14px;cursor:pointer;border:0;border-bottom:1px solid var(--borde);
+    font-family:inherit;font-size:15px;width:100%;text-align:left;background:none;color:var(--tinta);
+  }
+  .op:last-child{border-bottom:0}
+  .op:hover{background:var(--cobalto-suave)}
+
+  .volver{
+    background:none;border:0;color:var(--gris);font-size:14px;font-weight:600;
+    cursor:pointer;padding:0 0 14px;font-family:inherit;
+  }
+  .volver:hover{color:var(--cobalto)}
+  .dos{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .anotar{display:flex;gap:8px;margin-top:10px}
+  .anotar input{margin-top:0;text-align:center;font-family:'Chivo',sans-serif;font-weight:700;font-size:17px}
+  .centro{max-width:390px;margin:48px auto;padding:0 16px}
+  .portada{margin-bottom:26px}
+  .portada .cifra{
+    display:block;font-family:'Chivo',sans-serif;font-size:64px;font-weight:900;
+    letter-spacing:-.05em;color:var(--cobalto);line-height:.9;font-variant-numeric:tabular-nums;
+  }
+  .portada h1{margin-top:14px;font-size:29px}
+  .portada p{color:var(--gris);font-size:15px;margin-top:8px;max-width:32ch}
+
+  /* ---------- series ya anotadas ---------- */
+  .hechas{border-left:2px solid var(--cobalto);padding-left:12px;margin-top:10px}
+  .hechas .fila{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:2px 0}
+  .hechas .fila span{font-family:'Chivo',sans-serif;font-size:14.5px;font-weight:600;font-variant-numeric:tabular-nums}
+  .hechas button{
+    background:none;border:0;color:var(--gris);font-size:12.5px;cursor:pointer;font-family:inherit;
+    text-decoration:underline;
+  }
+  .hechas button:hover{color:var(--carmin)}
+
+  .semana{margin-bottom:20px}
+  .semana > h3{
+    display:inline-block;background:var(--tinta);color:#fff;font-size:13.5px;
+    padding:3px 10px;border-radius:3px;margin-bottom:8px;
+  }
+
+  /* ---------- navegación por día ---------- */
+  .navdia{
+    display:flex;align-items:center;gap:12px;background:var(--hoja);
+    border:1px solid var(--borde);border-radius:4px;padding:12px 14px;margin-bottom:12px;
+  }
+  .navdia .mini{width:36px;height:36px;font-size:19px;font-weight:700;color:var(--tinta)}
+  .navdia .fecha{
+    margin-top:5px;padding:4px 6px;font-size:13px;border:0;border-bottom:1.5px solid var(--borde);
+    border-radius:0;background:none;color:var(--gris);width:auto;
+  }
+  .acciones{display:flex;flex-wrap:wrap;gap:6px}
+  .card.turno{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap}
+  .card.turno .quien{flex:1 1 140px;min-width:0}
+  .card.turno .acciones{flex:0 0 auto}
+  .horario{
+    font-family:'Chivo',sans-serif;font-size:20px;font-weight:900;letter-spacing:-.03em;
+    color:var(--cobalto);min-width:56px;font-variant-numeric:tabular-nums;
+  }
+
+  /* ---------- ventanas ---------- */
+  .fondo-modal{position:fixed;inset:0;background:rgba(15,34,49,.5);display:flex;align-items:flex-end;justify-content:center;z-index:60}
+  .modal{
+    background:var(--hoja);border-radius:6px 6px 0 0;padding:22px 20px 26px;width:100%;
+    max-width:520px;max-height:88vh;overflow:auto;border-top:3px solid var(--cobalto);
+    animation:entra .16s ease-out;
+  }
+  @keyframes entra{from{transform:translateY(12px)}to{transform:none}}
+  @media (prefers-reduced-motion:reduce){.modal{animation:none}}
+  @media (min-width:560px){
+    .fondo-modal{align-items:center;padding:20px}
+    .modal{border-radius:6px}
+  }
+  .modal h3{font-size:19px;margin-bottom:5px}
+  .modal .sub{color:var(--gris);font-size:14.5px;margin-bottom:18px}
+
+  /* ---------- mensajes ---------- */
+  .mensajes{
+    position:fixed;left:0;right:0;bottom:20px;display:flex;flex-direction:column;
+    align-items:center;gap:8px;z-index:80;pointer-events:none;padding:0 16px;
+  }
+  .mensaje{
+    background:var(--tinta);color:#fff;padding:11px 17px;border-radius:4px;
+    font-size:14.5px;font-weight:500;max-width:440px;border-left:3px solid var(--cobalto);
+  }
+  .mensaje.mal{border-left-color:var(--carmin)}
+  .mensaje.bien{border-left-color:#5FA8FF}
+
+  .tabla{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px}
+  .tabla th,.tabla td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--borde)}
+  .tabla th{color:var(--gris);font-size:12.5px;font-weight:600}
+  .tabla td b{font-family:'Chivo',sans-serif;font-variant-numeric:tabular-nums}
+
+  @media (max-width:430px){
+    .dos{grid-template-columns:1fr}
+    h2{font-size:22px}
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext } = React;
+
+const CLAVE = 'apptrainner_token';
+let sesion = localStorage.getItem(CLAVE) || null;
+
+async function api(path, opts = {}) {
+  const r = await fetch('/api' + path, {
+    method: opts.method || 'GET',
+    headers: Object.assign({ 'Content-Type': 'application/json' },
+      sesion ? { Authorization: 'Bearer ' + sesion } : {}),
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    if (r.status === 401) { sesion = null; localStorage.removeItem(CLAVE); location.reload(); }
+    const e = new Error(d.error || 'Algo no salió bien. Probá de nuevo.');
+    e.status = r.status; e.datos = d; throw e;
+  }
+  return d;
+}
+
+const DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+const fmt = d => d ? d.split('-').reverse().slice(0, 2).join('/') : '—';
+const fmtLargo = d => { if (!d) return '—'; const [a, m, dd] = d.split('-'); return `${dd}/${m}`; };
+const hora = iso => iso ? new Date(iso).toTimeString().slice(0, 5) : '';
+const hoyISO = () => new Date().toISOString().slice(0, 10);
+const semanaDe = i => i ? Math.max(1, Math.floor((Date.now() - new Date(i + 'T00:00:00')) / (7 * 864e5)) + 1) : 1;
+function finPlan(inicio) {
+  if (!inicio) return null;
+  const d = new Date(inicio + 'T00:00:00'); d.setDate(d.getDate() + 28);
+  return d.toISOString().slice(0, 10);
+}
+const diasRestantes = inicio => {
+  const f = finPlan(inicio); if (!f) return null;
+  return Math.ceil((new Date(f + 'T00:00:00') - new Date().setHours(0, 0, 0, 0)) / 864e5);
+};
+
+/* La cinta métrica del plan: cuatro semanas con marcas, como una cinta de medir. */
+function Progreso({ inicio, compacto }) {
+  if (!inicio) return null;
+  const dias = diasRestantes(inicio);
+  const transcurridos = Math.min(28, Math.max(0, 28 - Math.max(dias, 0)));
+  const pct = (transcurridos / 28) * 100;
+  const estado = dias < 0 ? 'cumplido' : dias <= 7 ? 'cerca' : '';
+  const semana = Math.min(4, Math.max(1, Math.ceil((transcurridos + 1) / 7)));
+  const marcas = [];
+  for (let d = 1; d < 28; d++)
+    marcas.push(<i key={d} className={'marca' + (d % 7 === 0 ? ' alta' : '')}
+      style={{ left: (d / 28) * 100 + '%', top: d % 7 === 0 ? 0 : 8, bottom: d % 7 === 0 ? 0 : 8 }} />);
+
+  return (
+    <div className="plan">
+      <div className={'cinta ' + estado}>
+        <i className="lleno" style={{ width: Math.max(pct, 1.5) + '%' }} />
+        {marcas}
+      </div>
+      <div className="pie">
+        <b>{dias < 0 ? 'Plan cumplido' : 'Semana ' + semana + ' de 4'}</b>
+        {!compacto && <span>{dias < 0 ? 'toca renovar' : 'termina el ' + fmtLargo(finPlan(inicio))}</span>}
+      </div>
+    </div>);
+}
+
+/* ---------- avisos y ventanas propias ---------- */
+const Aviso = createContext(null);
+const usarAviso = () => useContext(Aviso);
+
+function ProveedorAviso({ children }) {
+  const [mensajes, setMensajes] = useState([]);
+  const [pregunta, setPregunta] = useState(null);
+
+  const avisar = useCallback((texto, tipo = 'bien') => {
+    const id = Math.random();
+    setMensajes(m => [...m, { id, texto, tipo }]);
+    setTimeout(() => setMensajes(m => m.filter(x => x.id !== id)), 3600);
+  }, []);
+
+  const confirmar = useCallback((texto, detalle, etiqueta) =>
+    new Promise(res => setPregunta({ texto, detalle, etiqueta: etiqueta || 'Sí, dale', res })), []);
+
+  // Memorizado: si no, cambia en cada render y hace recargar datos en bucle.
+  const valor = useMemo(() => ({ avisar, confirmar }), [avisar, confirmar]);
+
+  return (
+    <Aviso.Provider value={valor}>
+      {children}
+      <div className="mensajes">
+        {mensajes.map(m => <div key={m.id} className={'mensaje ' + m.tipo}>{m.texto}</div>)}
+      </div>
+      {pregunta &&
+        <div className="fondo-modal" onClick={() => { pregunta.res(false); setPregunta(null); }}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h3>{pregunta.texto}</h3>
+            {pregunta.detalle && <p className="sub">{pregunta.detalle}</p>}
+            <button className="btn riesgo" onClick={() => { pregunta.res(true); setPregunta(null); }}>
+              {pregunta.etiqueta}</button>
+            <button className="btn linea" style={{ marginTop: 10 }}
+              onClick={() => { pregunta.res(false); setPregunta(null); }}>Mejor no</button>
+          </div>
+        </div>}
+    </Aviso.Provider>);
+}
+
+function Modal({ titulo, sub, children, cerrar }) {
+  useEffect(() => {
+    const esc = e => e.key === 'Escape' && cerrar();
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  }, [cerrar]);
+  return (
+    <div className="fondo-modal" onClick={cerrar}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <h3>{titulo}</h3>
+        {sub && <p className="sub">{sub}</p>}
+        {children}
+      </div>
+    </div>);
+}
+
+/* Si una pantalla falla, se muestra el error en vez de quedar trabada. */
+class Escudo extends React.Component {
+  constructor(p) { super(p); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidUpdate(prev) { if (prev.clave !== this.props.clave && this.state.error) this.setState({ error: null }); }
+  render() {
+    if (this.state.error)
+      return (<div className="vacio">
+        <p>Se trabó esta pantalla. Probá volver a entrar.</p>
+        <button className="btn chico" onClick={() => this.setState({ error: null })}>Reintentar</button>
+      </div>);
+    return this.props.children;
+  }
+}
+
+/* ---------- entrada ---------- */
+function Entrar({ onEntrar }) {
+  const [modo, setModo] = useState('login');
+  const [f, setF] = useState({ email: '', password: '', nombre: '' });
+  const [cargando, setCargando] = useState(false);
+  const { avisar } = usarAviso();
+  const set = k => e => setF({ ...f, [k]: e.target.value });
+
+  async function enviar() {
+    setCargando(true);
+    try {
+      const r = await api(modo === 'login' ? '/login' : '/registro', { method: 'POST', body: f });
+      sesion = r.token; localStorage.setItem(CLAVE, r.token);
+      avisar(modo === 'login' ? '¡Hola de nuevo!' : '¡Cuenta creada! Bienvenido.');
+      onEntrar(r);
+    } catch (e) { avisar(e.message, 'mal'); } finally { setCargando(false); }
+  }
+
+  return (
+    <div className="centro">
+      <div className="portada">
+        <span className="cifra">4×10</span>
+        <h1>AppTrainner</h1>
+        <p>Armá las rutinas de tus alumnos sin volver a pegar un video nunca más.</p>
+      </div>
+      <div className="card">
+        {modo === 'registro' &&
+          <label>¿Cómo te llamás?<input value={f.nombre} onChange={set('nombre')} placeholder="Tu nombre" /></label>}
+        <label>Mail<input type="email" value={f.email} onChange={set('email')} autoComplete="email" /></label>
+        <label>Contraseña
+          <input type="password" value={f.password} onChange={set('password')}
+            autoComplete={modo === 'login' ? 'current-password' : 'new-password'}
+            onKeyDown={e => e.key === 'Enter' && enviar()} />
+          {modo === 'registro' && <span className="chico">Mínimo 8 caracteres.</span>}
+        </label>
+        <button className="btn" onClick={enviar} disabled={cargando}>
+          {cargando ? 'Un segundito...' : modo === 'login' ? 'Entrar' : 'Crear mi cuenta'}</button>
+        <button className="btn linea" style={{ marginTop: 10 }}
+          onClick={() => setModo(modo === 'login' ? 'registro' : 'login')}>
+          {modo === 'login' ? 'Todavía no tengo cuenta' : 'Ya tengo cuenta'}</button>
+      </div>
+    </div>);
+}
+
+/* ---------- grupos musculares ---------- */
+function Grupos({ grupos, recargar, ejercicios, cerrar }) {
+  const [nuevo, setNuevo] = useState('');
+  const [editando, setEditando] = useState(null);
+  const [fusion, setFusion] = useState(null);
+  const { avisar, confirmar } = usarAviso();
+
+  const cuantos = nombre => ejercicios.filter(e => e.grupo === nombre).length;
+
+  async function crear() {
+    if (!nuevo.trim()) return;
+    try { await api('/grupos', { method: 'POST', body: { nombre: nuevo } }); setNuevo(''); await recargar(); avisar('Grupo creado'); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+  async function renombrar() {
+    try { await api('/grupos/' + editando.id, { method: 'PATCH', body: { nombre: editando.nombre } });
+      setEditando(null); await recargar(); avisar('Grupo renombrado'); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+  async function fusionar(destinoId) {
+    try { await api('/grupos/' + fusion.id + '/fusionar', { method: 'POST', body: { destino: destinoId } });
+      setFusion(null); await recargar(); avisar('Grupos fusionados'); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+  async function borrar(g) {
+    const n = cuantos(g.nombre);
+    if (!await confirmar('¿Eliminamos el grupo ' + g.nombre + '?',
+      n ? `${n} ejercicio${n === 1 ? '' : 's'} van a quedar sin grupo. No se borran.` : 'No lo usa ningún ejercicio.',
+      'Sí, eliminar')) return;
+    try { await api('/grupos/' + g.id, { method: 'DELETE' }); await recargar(); avisar('Grupo eliminado'); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  return (
+    <Modal titulo="Grupos musculares"
+      sub="Los que definas acá son los que vas a poder elegir al cargar un ejercicio." cerrar={cerrar}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <input value={nuevo} placeholder="Piernas, Pecho, Espalda..." style={{ marginTop: 0 }}
+          onChange={e => setNuevo(e.target.value)} onKeyDown={e => e.key === 'Enter' && crear()} />
+        <button className="btn chico" onClick={crear} disabled={!nuevo.trim()}>Agregar</button>
+      </div>
+
+      {!grupos.length && <p className="suave">Creá los grupos que uses: piernas, pecho, espalda.</p>}
+      {grupos.map(g => (
+        <div className="ej" key={g.id}>
+          <div className="ej-top">
+            <div><b>{g.nombre}</b><div className="chico">{cuantos(g.nombre)} ejercicios</div></div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button className="btn linea chico" onClick={() => setEditando({ ...g })}>Renombrar</button>
+              {grupos.length > 1 &&
+                <button className="btn linea chico" onClick={() => setFusion(g)}>Fusionar</button>}
+              <button className="btn riesgo chico" onClick={() => borrar(g)}>Borrar</button>
+            </div>
+          </div>
+        </div>))}
+
+      {editando &&
+        <div style={{ marginTop: 16 }}>
+          <label>Nuevo nombre para "{grupos.find(x => x.id === editando.id).nombre}"
+            <input autoFocus value={editando.nombre}
+              onChange={e => setEditando({ ...editando, nombre: e.target.value })} /></label>
+          <p className="chico">Los ejercicios de ese grupo se actualizan solos.</p>
+          <button className="btn" onClick={renombrar}>Guardar</button>
+          <button className="btn linea" style={{ marginTop: 8 }} onClick={() => setEditando(null)}>Cancelar</button>
+        </div>}
+
+      {fusion &&
+        <div style={{ marginTop: 16 }}>
+          <p className="suave" style={{ marginBottom: 8 }}>
+            Pasar los ejercicios de <b>{fusion.nombre}</b> a:</p>
+          <div className="lista">
+            {grupos.filter(g => g.id !== fusion.id).map(g =>
+              <button className="op" key={g.id} onClick={() => fusionar(g.id)}>{g.nombre}</button>)}
+          </div>
+          <button className="btn linea" style={{ marginTop: 8 }} onClick={() => setFusion(null)}>Cancelar</button>
+        </div>}
+    </Modal>);
+}
+
+/* ---------- banco de ejercicios ---------- */
+function Ejercicios({ ejercicios, grupos, recargar }) {
+  const [form, setForm] = useState(null);
+  const [verGrupos, setVerGrupos] = useState(false);
+  const { avisar, confirmar } = usarAviso();
+
+  async function guardar() {
+    try {
+      if (form.id) { await api('/ejercicios/' + form.id, { method: 'PATCH', body: form }); avisar('Ejercicio actualizado'); }
+      else {
+        const r = await api('/ejercicios', { method: 'POST', body: form });
+        avisar(r.ya_existia ? 'Ese ejercicio ya estaba en tu banco' : 'Ejercicio guardado');
+      }
+      setForm(null); await recargar();
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function borrar(ej) {
+    if (!await confirmar('¿Sacamos este ejercicio del banco?',
+      `"${ej.nombre}" ya no va a aparecer cuando armes rutinas nuevas.`, 'Sí, sacarlo')) return;
+    try { await api('/ejercicios/' + ej.id, { method: 'DELETE' }); await recargar(); avisar('Listo, lo sacamos'); }
+    catch (e) {
+      if (e.status === 409) {
+        if (!await confirmar('Ojo: lo estás usando',
+          `${e.datos.usos === 1 ? 'Aparece en 1 rutina tuya' : 'Aparece en ' + e.datos.usos + ' rutinas tuyas'}. Si lo sacás, también desaparece de ahí. Esto no afecta a ningún otro entrenador.`,
+          'Sacarlo igual')) return;
+        try { await api('/ejercicios/' + ej.id + '?forzar=1', { method: 'DELETE' }); await recargar();
+          avisar('Lo sacamos del banco y de tus rutinas'); }
+        catch (e2) { avisar(e2.message, 'mal'); }
+      } else avisar(e.message, 'mal');
+    }
+  }
+
+  const porGrupo = {};
+  ejercicios.forEach(e => { (porGrupo[e.grupo || 'Sin grupo'] ||= []).push(e); });
+
+  return (<div>
+    <div className="row" style={{ marginBottom: 8 }}>
+      <h2>Tu banco de ejercicios</h2>
+      <button className="btn chico" onClick={() => setForm({ nombre: '', grupo: '', video_url: '' })}>Sumar uno</button>
+    </div>
+    <p className="suave" style={{ marginBottom: 12 }}>
+      {ejercicios.length} ejercicio{ejercicios.length === 1 ? '' : 's'} cargados. El video se pega una sola vez.
+    </p>
+    <button className="btn linea chico" style={{ marginBottom: 16 }} onClick={() => setVerGrupos(true)}>
+      Grupos musculares ({grupos.length})</button>
+
+    {!ejercicios.length &&
+      <div className="vacio"><p>Acá se guardan tus ejercicios con su video. Cargás cada uno una sola vez.</p>
+        <button className="btn chico" onClick={() => setForm({ nombre: '', grupo: '', video_url: '' })}>Cargar el primero</button></div>}
+
+    {Object.keys(porGrupo).sort().map(g => (
+      <div className="dia" key={g}>
+        <div className="row" style={{ marginBottom: 4 }}>
+          <h3>{g}</h3>
+          <span className="chico">{porGrupo[g].length}</span>
+        </div>
+        {porGrupo[g].map(e => (
+          <div className="ej" key={e.id}>
+            <div className="ej-top">
+              <div>
+                <b>{e.nombre}</b>
+                {e.video_url
+                  ? <div><a className="video" href={e.video_url} target="_blank" rel="noopener">Ver el video</a></div>
+                  : <div className="chico">Sin video todavía</div>}
+              </div>
+              <div className="acciones">
+                <button className="btn linea chico" onClick={() => setForm(e)}>Editar</button>
+                <button className="btn riesgo chico" onClick={() => borrar(e)}>Sacar</button>
+              </div>
+            </div>
+          </div>))}
+      </div>))}
+
+    {form &&
+      <Modal titulo={form.id ? 'Editar ejercicio' : 'Nuevo ejercicio'}
+        sub="Queda guardado en tu banco y lo reutilizás siempre." cerrar={() => setForm(null)}>
+        <label>Nombre<input autoFocus value={form.nombre || ''}
+          onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Sentadilla con barra" /></label>
+        <label>Grupo muscular
+          <select value={form.grupo || ''} onChange={e => setForm({ ...form, grupo: e.target.value })}>
+            <option value="">Sin grupo</option>
+            {grupos.map(g => <option key={g.id} value={g.nombre}>{g.nombre}</option>)}
+          </select>
+        </label>
+        {!grupos.length &&
+          <p className="chico" style={{ marginTop: -6, marginBottom: 12 }}>
+            Todavía no definiste grupos. Cerrá esto y tocá "Grupos musculares" para crearlos.</p>}
+        <label>Link del video<input value={form.video_url || ''}
+          onChange={e => setForm({ ...form, video_url: e.target.value })}
+          placeholder="Pegá el link de YouTube o Instagram" /></label>
+        <button className="btn" onClick={guardar} disabled={!String(form.nombre || '').trim()}>Guardar</button>
+        <button className="btn linea" style={{ marginTop: 10 }} onClick={() => setForm(null)}>Cancelar</button>
+      </Modal>}
+
+    {verGrupos && <Grupos grupos={grupos} recargar={recargar} ejercicios={ejercicios} cerrar={() => setVerGrupos(false)} />}
+  </div>);
+}
+
+/* ---------- alumnos ---------- */
+function FormAlumno({ inicial, onGuardar, cerrar, conTurnos }) {
+  const [f, setF] = useState(inicial);
+  const set = k => e => setF({ ...f, [k]: e.target.value });
+  const turnos = f.turnos || [];
+
+  const agregarDia = () => setF({ ...f, turnos: [...turnos, { dia_semana: 1, hora: '09:00', duracion: 60 }] });
+  const cambiarDia = (i, campo, valor) => {
+    const t = [...turnos]; t[i] = { ...t[i], [campo]: valor }; setF({ ...f, turnos: t });
+  };
+  const quitarDia = i => setF({ ...f, turnos: turnos.filter((_, j) => j !== i) });
+
+  return (
+    <Modal titulo={f.id ? 'Editar alumno' : 'Nuevo alumno'}
+      sub={conTurnos ? 'Cargá sus datos y los días que entrena.' : 'Cargá sus datos.'} cerrar={cerrar}>
+      <label>Nombre<input autoFocus value={f.nombre || ''} onChange={set('nombre')} /></label>
+      <label>Teléfono o mail<input value={f.contacto || ''} onChange={set('contacto')} placeholder="Opcional" /></label>
+      <label>¿Cuándo arrancó el plan?<input type="date" value={f.inicio || ''} onChange={set('inicio')} /></label>
+      <div className="dos">
+        <label>Peso inicial (kg)<input type="number" inputMode="decimal" value={f.peso_inicial || ''}
+          onChange={set('peso_inicial')} placeholder="Opcional" /></label>
+        <label>Altura (cm)<input type="number" inputMode="numeric" value={f.altura || ''}
+          onChange={set('altura')} placeholder="Opcional" /></label>
+      </div>
+      <label>Anotaciones<textarea rows="3" value={f.notas || ''} onChange={set('notas')}
+        placeholder="Lesiones, objetivos, lo que quieras recordar (opcional)" /></label>
+
+      {conTurnos && (<div>
+        <label style={{ marginBottom: 6 }}>Días y horarios</label>
+        <p className="chico" style={{ marginBottom: 8 }}>Uno por cada día que entrena. Van directo a tu agenda.</p>
+        {turnos.map((t, i) => (
+          <div key={i} style={{ display: 'flex', gap: 6, marginBottom: 8, alignItems: 'center' }}>
+            <select value={t.dia_semana} style={{ marginTop: 0 }}
+              onChange={e => cambiarDia(i, 'dia_semana', +e.target.value)}>
+              {[1, 2, 3, 4, 5, 6, 0].map(d => <option key={d} value={d}>{DIAS[d].slice(0, 3)}</option>)}
+            </select>
+            <input type="time" value={t.hora} style={{ marginTop: 0 }}
+              onChange={e => cambiarDia(i, 'hora', e.target.value)} />
+            <input type="number" value={t.duracion} style={{ marginTop: 0, maxWidth: 80 }} title="minutos"
+              onChange={e => cambiarDia(i, 'duracion', +e.target.value)} />
+            <button className="mini" onClick={() => quitarDia(i)} title="Quitar">✕</button>
+          </div>))}
+        <button className="btn linea chico" onClick={agregarDia} style={{ marginBottom: 14 }}>
+          + Agregar día</button>
+      </div>)}
+
+      <button className="btn" onClick={() => onGuardar(f)} disabled={!String(f.nombre || '').trim()}>
+        Guardar alumno</button>
+    </Modal>);
+}
+
+function Alumnos({ clientes, recargar, abrir, recargarTurnos }) {
+  const [form, setForm] = useState(null);
+  const [importar, setImportar] = useState(false);
+  const { avisar } = usarAviso();
+
+  async function crear(f) {
+    try {
+      await api('/clientes', { method: 'POST', body: f });
+      setForm(null); await recargar(); await recargarTurnos();
+      avisar(f.turnos && f.turnos.length ? 'Alumno agregado y turnos cargados en la agenda' : 'Alumno agregado');
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  const porRenovar = clientes.filter(c => { const d = diasRestantes(c.inicio); return d !== null && d <= 7; });
+  const nuevo = { nombre: '', contacto: '', inicio: hoyISO(), peso_inicial: '', altura: '', notas: '',
+                  turnos: [{ dia_semana: 1, hora: '09:00', duracion: 60 }] };
+
+  return (<div>
+    {!!porRenovar.length &&
+      <div className="recordatorio">
+        <h3>{porRenovar.length === 1 ? 'Se termina el plan de ' + porRenovar[0].nombre
+          : 'Se terminan ' + porRenovar.length + ' planes'}</h3>
+        <p className="suave">
+          {porRenovar.map(c => {
+            const d = diasRestantes(c.inicio);
+            const cuando = d < 0 ? 'ya se cumplió' : d === 0 ? 'termina hoy' : 'termina el ' + fmtLargo(finPlan(c.inicio));
+            return porRenovar.length === 1 ? cuando.charAt(0).toUpperCase() + cuando.slice(1) : c.nombre + ', ' + cuando;
+          }).join('. ')}
+        </p>
+      </div>}
+
+    <div className="row" style={{ marginBottom: 12 }}>
+      <h2>Tus alumnos</h2>
+      <button className="btn chico" onClick={() => setForm(nuevo)}>Sumar alumno</button>
+    </div>
+    <button className="btn linea chico" style={{ marginBottom: 16 }} onClick={() => setImportar(true)}>
+      Importar datos desde Excel</button>
+
+    {!clientes.length &&
+      <div className="vacio"><p>Sumá tu primer alumno o traé todos de una con un Excel.</p>
+        <button className="btn chico" onClick={() => setForm(nuevo)}>Sumar el primero</button></div>}
+
+    {clientes.map(c => (
+      <div className="card tap" key={c.id} onClick={() => abrir(c.id)}>
+        <h3>{c.nombre}</h3>
+        <Progreso inicio={c.inicio} />
+      </div>))}
+
+    {form && <FormAlumno inicial={form} conTurnos onGuardar={crear} cerrar={() => setForm(null)} />}
+    {importar && <ImportarTodo cerrar={() => setImportar(false)}
+      alTerminar={async () => { await recargar(); await recargarTurnos(); }} />}
+  </div>);
+}
+
+/* ---------- importar datos generales ---------- */
+function ImportarTodo({ cerrar, alTerminar }) {
+  const [datos, setDatos] = useState(null);
+  const [subiendo, setSubiendo] = useState(false);
+  const [resultado, setResultado] = useState(null);
+  const { avisar } = usarAviso();
+
+  // Lee un Excel con hojas Alumnos / Ejercicios / Rutinas / Agenda.
+  function leer(archivo) {
+    const lector = new FileReader();
+    lector.onload = ev => {
+      try {
+        const libro = XLSX.read(new Uint8Array(ev.target.result), { type: 'array', cellDates: false });
+        const hoja = nombres => {
+          const n = libro.SheetNames.find(x => nombres.includes(x.trim().toLowerCase()));
+          if (!n) return [];
+          const filas = XLSX.utils.sheet_to_json(libro.Sheets[n], { header: 1, defval: '', blankrows: true });
+          if (!filas.length) return [];
+          const cabecera = (filas[0] || []).map(h => String(h).trim().toLowerCase());
+          const salida = [];
+          for (let i = 1; i < filas.length; i++) {
+            const f = filas[i] || [];
+            const vacia = f.every(v => String(v == null ? '' : v).trim() === '');
+            if (vacia) break;                      // corta en la primera fila en blanco
+            const primera = String(f[0] == null ? '' : f[0]).trim();
+            if (primera.startsWith('•') || /^cómo completar/i.test(primera)) break;  // notas al pie
+            const o = {};
+            cabecera.forEach((k, j) => { if (k) o[k] = f[j] == null ? '' : f[j]; });
+            salida.push(o);
+          }
+          return salida;
+        };
+        const fecha = v => {
+          if (!v) return '';
+          if (typeof v === 'number') return new Date(Date.UTC(1899, 11, 30 + v)).toISOString().slice(0, 10);
+          const t = String(v).trim();
+          if (/^\d{4}-\d{2}-\d{2}/.test(t)) return t.slice(0, 10);
+          const m = t.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+          return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : '';
+        };
+        const horaDe = v => {
+          if (typeof v === 'number') {
+            const min = Math.round(v * 24 * 60);
+            return String(Math.floor(min / 60)).padStart(2, '0') + ':' + String(min % 60).padStart(2, '0');
+          }
+          const t = String(v || '').trim();
+          const m = t.match(/^(\d{1,2}):(\d{2})/);
+          return m ? m[1].padStart(2, '0') + ':' + m[2] : '';
+        };
+        const numDia = v => {
+          const t = String(v || '').trim().toLowerCase();
+          if (/^[0-6]$/.test(t)) return Number(t);
+          const i = DIAS.findIndex(d => d.toLowerCase().startsWith(t.slice(0, 3)));
+          return i >= 0 ? i : null;
+        };
+
+        const d = {
+          alumnos: hoja(['alumnos', 'alumno']).map(a => ({
+            alumno: a['alumno'] || a['nombre'] || '', contacto: a['contacto'] || a['telefono'] || a['teléfono'] || '',
+            inicio: fecha(a['inicio'] || a['arranque'] || a['fecha inicio']),
+            peso: a['peso'] || a['peso inicial'] || '', altura: a['altura'] || '',
+            notas: a['notas'] || a['anotaciones'] || ''
+          })).filter(a => String(a.alumno).trim()),
+
+          ejercicios: hoja(['ejercicios', 'ejercicio']).map(e => ({
+            ejercicio: e['ejercicio'] || e['nombre'] || '', grupo: e['grupo'] || e['grupo muscular'] || '',
+            video: e['video'] || e['link'] || ''
+          })).filter(e => String(e.ejercicio).trim()),
+
+          rutinas: hoja(['rutinas', 'rutina']).map(r => ({
+            alumno: r['alumno'] || '', rutina: r['rutina'] || 'Rutina importada',
+            dia: r['dia'] || r['día'] || 'Día 1', dia_sugerido: r['dia sugerido'] || r['día sugerido'] || '',
+            ejercicio: r['ejercicio'] || '', grupo: r['grupo'] || '',
+            series: r['series'] || '', reps: r['reps'] || r['repeticiones'] || '',
+            nota: r['nota'] || '', video: r['video'] || ''
+          })).filter(r => String(r.alumno).trim() && String(r.ejercicio).trim()),
+
+          turnos: hoja(['agenda', 'turnos', 'horarios']).map(t => ({
+            alumno: t['alumno'] || '', dia_semana: numDia(t['dia'] || t['día'] || t['dia semana']),
+            hora: horaDe(t['hora']), duracion: Number(t['duracion'] || t['duración'] || 60) || 60,
+            nota: t['nota'] || ''
+          })).filter(t => String(t.alumno).trim() && t.dia_semana !== null && t.hora)
+        };
+
+        const total = d.alumnos.length + d.ejercicios.length + d.rutinas.length + d.turnos.length;
+        if (!total) {
+          avisar('No encontramos datos. Fijate que el archivo tenga las hojas Alumnos, Ejercicios, Rutinas o Agenda.', 'mal');
+          return;
+        }
+        setDatos(d);
+      } catch { avisar('No pudimos leer ese archivo. ¿Es un Excel?', 'mal'); }
+    };
+    lector.readAsArrayBuffer(archivo);
+  }
+
+  async function importar() {
+    setSubiendo(true);
+    try { setResultado(await api('/importar', { method: 'POST', body: datos })); }
+    catch (e) { avisar(e.message, 'mal'); setSubiendo(false); }
+  }
+
+  if (resultado) return (
+    <Modal titulo="Listo, importamos todo" cerrar={() => { cerrar(); alTerminar && alTerminar(); }}>
+      <p className="suave" style={{ marginBottom: 12 }}>Esto es lo que quedó cargado:</p>
+      <table className="tabla">
+        <tbody>
+          <tr><td>Alumnos nuevos</td><td><b>{resultado.alumnos}</b></td></tr>
+          <tr><td>Alumnos que ya tenías</td><td>{resultado.alumnosExistentes}</td></tr>
+          <tr><td>Ejercicios nuevos</td><td><b>{resultado.ejercicios}</b></td></tr>
+          <tr><td>Ejercicios reutilizados</td><td>{resultado.ejerciciosExistentes}</td></tr>
+          <tr><td>Rutinas armadas</td><td><b>{resultado.rutinas}</b> ({resultado.items} ejercicios)</td></tr>
+          <tr><td>Turnos en la agenda</td><td><b>{resultado.turnos}</b></td></tr>
+        </tbody>
+      </table>
+      {!!(resultado.avisos || []).length &&
+        <div style={{ marginTop: 14 }}>
+          <p className="chico"><b>Algunas filas quedaron afuera:</b></p>
+          {resultado.avisos.slice(0, 6).map((a, i) => <p className="chico" key={i}>· {a}</p>)}
+        </div>}
+      <button className="btn" style={{ marginTop: 16 }}
+        onClick={() => { cerrar(); alTerminar && alTerminar(); }}>Ver mis datos</button>
+    </Modal>);
+
+  return (
+    <Modal titulo="Carga inicial desde Excel"
+      sub="Un solo archivo con tus alumnos, ejercicios, rutinas y horarios." cerrar={cerrar}>
+      {!datos ? (<div>
+        <label>Archivo (.xlsx)
+          <input type="file" accept=".xlsx,.xls" onChange={e => e.target.files[0] && leer(e.target.files[0])} /></label>
+        <p className="chico" style={{ marginTop: 10 }}>
+          El archivo puede tener hasta cuatro hojas: <b>Alumnos</b>, <b>Ejercicios</b>, <b>Rutinas</b> y <b>Agenda</b>.
+          Podés usar solo las que necesites. Nada se pisa: lo que ya existe se reutiliza.
+        </p>
+        <a className="video" href="/plantilla-carga.xlsx" download style={{ display: 'block', marginTop: 12 }}>
+          Bajar la plantilla con las cuatro hojas</a>
+        <button className="btn linea" style={{ marginTop: 14 }} onClick={cerrar}>Cancelar</button>
+      </div>) : (<div>
+        <p className="suave" style={{ marginBottom: 10 }}>Encontramos esto en tu archivo:</p>
+        <table className="tabla">
+          <tbody>
+            <tr><td>Alumnos</td><td><b>{datos.alumnos.length}</b></td></tr>
+            <tr><td>Ejercicios</td><td><b>{datos.ejercicios.length}</b></td></tr>
+            <tr><td>Filas de rutina</td><td><b>{datos.rutinas.length}</b></td></tr>
+            <tr><td>Turnos</td><td><b>{datos.turnos.length}</b></td></tr>
+          </tbody>
+        </table>
+        {!!datos.alumnos.length &&
+          <p className="chico" style={{ marginTop: 10 }}>
+            Alumnos: {datos.alumnos.slice(0, 5).map(a => a.alumno).join(', ')}
+            {datos.alumnos.length > 5 ? ` y ${datos.alumnos.length - 5} más` : ''}</p>}
+        <button className="btn" style={{ marginTop: 14 }} onClick={importar} disabled={subiendo}>
+          {subiendo ? 'Importando...' : 'Importar todo'}</button>
+        <button className="btn linea" style={{ marginTop: 10 }} onClick={() => setDatos(null)}>Elegir otro archivo</button>
+      </div>)}
+    </Modal>);
+}
+
+/* ---------- ficha del alumno ---------- */
+function Ficha({ id, volver, abrirRutina, clientes, plantillas, recargarPlantillas, recargarTurnos }) {
+  const [c, setC] = useState(null);
+  const [turnos, setTurnos] = useState([]);
+  const [nueva, setNueva] = useState(null);
+  const [duplicar, setDuplicar] = useState(null);
+  const [usarPlantilla, setUsarPlantilla] = useState(false);
+  const [editar, setEditar] = useState(null);
+  const [turnoForm, setTurnoForm] = useState(null);
+  const { avisar, confirmar } = usarAviso();
+
+  const cargar = useCallback(async () => {
+    try {
+      setC(await api('/clientes/' + id));
+      setTurnos(await api('/clientes/' + id + '/turnos'));
+    } catch (e) { avisar(e.message, 'mal'); }
+  }, [id, avisar]);
+  useEffect(() => { cargar(); }, [cargar]);
+
+  if (!c) return <p className="suave">Cargando...</p>;
+  const link = location.origin + '/r/' + c.token;
+
+  async function crearRutina() {
+    const dias = [];
+    for (let i = 0; i < nueva.cantidad; i++)
+      dias.push({ nombre: (nueva.dias[i] || {}).nombre || `Día ${i + 1}`,
+                  dia_sugerido: (nueva.dias[i] || {}).dia || '' });
+    try {
+      const r = await api('/clientes/' + id + '/rutinas', { method: 'POST', body: { nombre: nueva.nombre, dias } });
+      setNueva(null); avisar('Rutina creada'); abrirRutina(r.id);
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function copiarA(destinoId) {
+    try {
+      const r = await api('/rutinas/' + duplicar + '/duplicar', { method: 'POST', body: { cliente_id: destinoId } });
+      setDuplicar(null); avisar('Rutina copiada'); abrirRutina(r.id);
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function aplicarPlantilla(plantillaId) {
+    try {
+      const r = await api('/plantillas/' + plantillaId + '/usar', { method: 'POST', body: { cliente_id: id } });
+      setUsarPlantilla(false); avisar('Rutina creada desde la plantilla'); abrirRutina(r.id);
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function guardarPlantilla(rutinaId, nombreRutina) {
+    try {
+      await api('/rutinas/' + rutinaId + '/plantilla', { method: 'POST', body: { nombre: nombreRutina } });
+      await recargarPlantillas(); avisar('Guardada como plantilla');
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function borrarRutina(r) {
+    if (!await confirmar('¿Eliminamos esta rutina?', `"${r.nombre}" y todos sus días.`, 'Sí, eliminar')) return;
+    try { await api('/rutinas/' + r.id, { method: 'DELETE' }); cargar(); avisar('Rutina eliminada'); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function guardarDatos(f) {
+    try { await api('/clientes/' + id, { method: 'PATCH', body: f }); setEditar(null); cargar(); avisar('Datos actualizados'); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function guardarTurno() {
+    try {
+      if (turnoForm.id) await api('/turnos/' + turnoForm.id, { method: 'PATCH', body: turnoForm });
+      else await api('/turnos', { method: 'POST', body: { ...turnoForm, cliente_id: id } });
+      setTurnoForm(null); await cargar(); await recargarTurnos(); avisar('Turno guardado');
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function borrarTurno(t) {
+    if (!await confirmar('¿Sacamos este turno?', `${DIAS[t.dia_semana]} ${t.hora}`, 'Sí, sacarlo')) return;
+    try { await api('/turnos/' + t.id, { method: 'DELETE' }); await cargar(); await recargarTurnos(); avisar('Turno eliminado'); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function borrarAlumno() {
+    if (!await confirmar('¿Eliminamos a ' + c.nombre + '?', 'Se borran sus rutinas, turnos y seguimiento.', 'Sí, eliminar')) return;
+    try { await api('/clientes/' + id, { method: 'DELETE' }); await recargarTurnos(); avisar('Alumno eliminado'); volver(); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  return (<div>
+    <button className="volver" onClick={volver}>← Tus alumnos</button>
+    <div className="row"><h2>{c.nombre}</h2>
+      <button className="btn linea chico" onClick={() => setEditar({
+        nombre: c.nombre, contacto: c.contacto || '', inicio: c.inicio,
+        peso_inicial: c.peso_inicial || '', altura: c.altura || '', notas: c.notas || '', id: c.id })}>Editar</button>
+    </div>
+    <p className="suave">{c.contacto || 'Sin contacto cargado'}</p>
+    <p className="chico">
+      {[c.peso_inicial ? c.peso_inicial + ' kg al empezar' : null,
+        c.altura ? c.altura + ' cm' : null].filter(Boolean).join(', ') || 'Sin medidas cargadas'}
+    </p>
+    {c.notas && <p className="suave" style={{ marginTop: 6, fontStyle: 'italic' }}>{c.notas}</p>}
+    <Progreso inicio={c.inicio} />
+
+    <div className="card" style={{ marginTop: 16 }}>
+      <div className="row"><h3>Sus días</h3>
+        <button className="btn linea chico"
+          onClick={() => setTurnoForm({ dia_semana: 1, hora: '09:00', duracion: 60, nota: '' })}>Sumar día</button>
+      </div>
+      {!turnos.length && <p className="suave" style={{ marginTop: 8 }}>Sumale los días que viene a entrenar y aparecen en tu agenda.</p>}
+      {turnos.map(t => (
+        <div className="ej" key={t.id}>
+          <div className="ej-top">
+            <div>
+              <b>{DIAS[t.dia_semana]}</b>
+              <div className="chico">{t.hora}, {t.duracion} minutos{t.nota ? '. ' + t.nota : ''}</div>
+              {t.choca && <span className="globo alerta" style={{ marginTop: 6 }}>Se pisa con otro turno</span>}
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button className="btn linea chico" onClick={() => setTurnoForm(t)}>Cambiar</button>
+              <button className="btn riesgo chico" onClick={() => borrarTurno(t)}>Quitar</button>
+            </div>
+          </div>
+        </div>))}
+    </div>
+
+    <div className="card">
+      <h3>Su link personal</h3>
+      <p className="suave" style={{ margin: '4px 0 12px' }}>Entra sin contraseña, desde el celular.</p>
+      <input readOnly value={link} onFocus={e => e.target.select()} />
+      <div className="dos" style={{ marginTop: 10 }}>
+        <button className="btn linea chico" onClick={() =>
+          navigator.clipboard.writeText(link).then(() => avisar('Link copiado')).catch(() => avisar('Copialo a mano', 'mal'))}>
+          Copiar link</button>
+        <a className="btn linea chico" style={{ textAlign: 'center', textDecoration: 'none', display: 'block' }}
+          href={'https://wa.me/?text=' + encodeURIComponent('Hola ' + c.nombre + ', acá tenés tu rutina: ' + link)}
+          target="_blank" rel="noopener">Mandar por WhatsApp</a>
+      </div>
+    </div>
+
+    <div className="row" style={{ margin: '20px 0 12px' }}>
+      <h3>Rutinas</h3>
+      <button className="btn chico" onClick={() => setNueva({ nombre: 'Mes ' + (c.rutinas.length + 1), cantidad: 3, dias: [] })}>Nueva</button>
+    </div>
+    <button className="btn linea chico" style={{ marginBottom: 14 }} onClick={() => setUsarPlantilla(true)}>
+      Usar una plantilla</button>
+
+    {!c.rutinas.length && <div className="vacio"><p>Armale una rutina desde cero o partí de una plantilla.</p></div>}
+    {c.rutinas.map(r => (
+      <div className="card" key={r.id}>
+        <div className="row"><h3>{r.nombre}</h3><span className="chico">Desde el {fmt(r.inicio)}</span></div>
+        <div className="acciones" style={{ marginTop: 12 }}>
+          <button className="btn linea chico" onClick={() => abrirRutina(r.id)}>Editar</button>
+          <button className="btn linea chico" onClick={() => setDuplicar(r.id)}>Copiar a otro</button>
+          <button className="btn linea chico" onClick={() => guardarPlantilla(r.id, r.nombre)}>Guardar plantilla</button>
+          <button className="btn riesgo chico" onClick={() => borrarRutina(r)}>Eliminar</button>
+        </div>
+      </div>))}
+
+    <h3 style={{ margin: '22px 0 10px' }}>Lo que carga tu alumno</h3>
+    {!c.registros.length && !c.seguimiento.length &&
+      <div className="vacio"><p>Cuando entrene y anote sus series, vas a verlas acá semana por semana.</p></div>}
+
+    {c.registros.map(sem => (
+      <div className="semana" key={sem.semana}>
+        <h3 style={{ marginBottom: 8 }}>Semana {sem.semana}</h3>
+        {sem.dias.map((d, i) => (
+          <div className="card" key={i} style={{ padding: '14px 16px' }}>
+            <div className="row"><b>{d.dia || 'Sin día'}</b><span className="chico">{fmt(d.fecha)}</span></div>
+            {d.rutina && <p className="chico">{d.rutina}</p>}
+            {d.ejercicios.map((e, j) => (
+              <p className="suave" key={j} style={{ marginTop: 6 }}>
+                <b style={{ color: 'var(--tinta)' }}>{e.nombre}</b>{': '}
+                <span style={{ fontFamily: "'Chivo',sans-serif", fontVariantNumeric: 'tabular-nums' }}>
+                  {e.series.map(x => `${x.kg}×${x.reps}`).join('   ')}</span>
+              </p>))}
+          </div>))}
+      </div>))}
+
+    {!!c.seguimiento.length &&
+      <div className="card">
+        <h3>Peso corporal</h3>
+        {c.seguimiento.map(x =>
+          <p className="suave" key={x.id} style={{ marginTop: 6 }}>
+            <b style={{ fontFamily: "'Chivo',sans-serif" }}>{x.peso} kg</b>
+            {' el ' + fmt(x.fecha)}{x.semana ? ` (semana ${x.semana})` : ''}{x.nota ? '. ' + x.nota : ''}</p>)}
+      </div>}
+
+    <button className="btn riesgo chico" onClick={borrarAlumno}>Eliminar alumno</button>
+
+    {editar && <FormAlumno inicial={editar} onGuardar={guardarDatos} cerrar={() => setEditar(null)} />}
+
+    {turnoForm &&
+      <Modal titulo={turnoForm.id ? 'Cambiar turno' : 'Nuevo día'} sub={c.nombre} cerrar={() => setTurnoForm(null)}>
+        <label>Día
+          <select value={turnoForm.dia_semana} onChange={e => setTurnoForm({ ...turnoForm, dia_semana: +e.target.value })}>
+            {[1, 2, 3, 4, 5, 6, 0].map(d => <option key={d} value={d}>{DIAS[d]}</option>)}
+          </select></label>
+        <div className="dos">
+          <label>Hora<input type="time" value={turnoForm.hora}
+            onChange={e => setTurnoForm({ ...turnoForm, hora: e.target.value })} /></label>
+          <label>Duración (min)<input type="number" value={turnoForm.duracion}
+            onChange={e => setTurnoForm({ ...turnoForm, duracion: +e.target.value })} /></label>
+        </div>
+        <label>Nota<input value={turnoForm.nota || ''} placeholder="Opcional"
+          onChange={e => setTurnoForm({ ...turnoForm, nota: e.target.value })} /></label>
+        <button className="btn" onClick={guardarTurno}>Guardar</button>
+      </Modal>}
+
+    {nueva &&
+      <Modal titulo="Nueva rutina" sub="Definí los días y después cargás los ejercicios." cerrar={() => setNueva(null)}>
+        <label>Nombre<input autoFocus value={nueva.nombre} onChange={e => setNueva({ ...nueva, nombre: e.target.value })} /></label>
+        <label>¿Cuántos días entrena?
+          <select value={nueva.cantidad} onChange={e => setNueva({ ...nueva, cantidad: +e.target.value })}>
+            {[1, 2, 3, 4, 5, 6].map(n => <option key={n} value={n}>{n} días</option>)}
+          </select></label>
+        {Array.from({ length: nueva.cantidad }).map((_, i) => (
+          <div className="dos" key={i}>
+            <label>Día {i + 1}<input placeholder="Tren inferior" onChange={e => {
+              const ds = [...nueva.dias]; ds[i] = { ...ds[i], nombre: e.target.value }; setNueva({ ...nueva, dias: ds });
+            }} /></label>
+            <label>Día sugerido<input placeholder="Lunes (opcional)" onChange={e => {
+              const ds = [...nueva.dias]; ds[i] = { ...ds[i], dia: e.target.value }; setNueva({ ...nueva, dias: ds });
+            }} /></label>
+          </div>))}
+        <button className="btn" onClick={crearRutina}>Crear rutina</button>
+      </Modal>}
+
+    {duplicar &&
+      <Modal titulo="¿A quién se la copiamos?" cerrar={() => setDuplicar(null)}>
+        <div className="lista">
+          {clientes.map(x => <button className="op" key={x.id} onClick={() => copiarA(x.id)}>{x.nombre}</button>)}
+        </div>
+      </Modal>}
+
+    {usarPlantilla &&
+      <Modal titulo="Tus plantillas" sub="Se crea una rutina nueva para este alumno." cerrar={() => setUsarPlantilla(false)}>
+        {!plantillas.length
+          ? <p className="suave">Todavía no tenés plantillas. Podés crearlas desde la pestaña Plantillas.</p>
+          : <div className="lista">
+              {plantillas.map(p => <button className="op" key={p.id} onClick={() => aplicarPlantilla(p.id)}>
+                <b>{p.nombre}</b> <span className="chico">{p.dias} días</span></button>)}
+            </div>}
+      </Modal>}
+  </div>);
+}
+
+/* ---------- editor de rutina ---------- */
+function Editor({ id, volver, ejercicios, grupos, recargarEjercicios }) {
+  const [r, setR] = useState(null);
+  const [busq, setBusq] = useState({});
+  const [form, setForm] = useState(null);
+  const [diaForm, setDiaForm] = useState(null);
+  const arrastrando = useRef(null);
+  const { avisar, confirmar } = usarAviso();
+
+  const cargar = useCallback(async () => {
+    try { setR(await api('/rutinas/' + id)); } catch (e) { avisar(e.message, 'mal'); }
+  }, [id, avisar]);
+  useEffect(() => { cargar(); }, [cargar]);
+  if (!r) return <p className="suave">Cargando...</p>;
+
+  async function guardarItem() {
+    try {
+      if (form.item_id) {
+        await api('/items/' + form.item_id, { method: 'PATCH',
+          body: { series: form.series, reps: form.reps, nota: form.nota } });
+        avisar('Ejercicio actualizado');
+      } else {
+        let ejId = form.ejercicio_id;
+        if (!ejId) {
+          const e = await api('/ejercicios', { method: 'POST',
+            body: { nombre: form.nombreNuevo, grupo: form.grupo, video_url: form.video } });
+          ejId = e.id; await recargarEjercicios();
+        }
+        await api('/dias/' + form.diaId + '/items', { method: 'POST',
+          body: { ejercicio_id: ejId, series: form.series, reps: form.reps, nota: form.nota } });
+        setBusq({ ...busq, [form.diaId]: '' });
+        avisar('Ejercicio agregado');
+      }
+      setForm(null); cargar();
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function quitar(it) {
+    if (!await confirmar('¿Sacamos este ejercicio de la rutina?', it.ejercicio, 'Sí, sacarlo')) return;
+    try { await api('/items/' + it.id, { method: 'DELETE' }); setForm(null); cargar(); avisar('Listo'); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function guardarDia() {
+    try {
+      if (diaForm.id) { await api('/dias/' + diaForm.id, { method: 'PATCH', body: diaForm }); avisar('Día actualizado'); }
+      else { await api('/rutinas/' + id + '/dias', { method: 'POST', body: diaForm }); avisar('Día agregado'); }
+      setDiaForm(null); cargar();
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function borrarDia(d) {
+    if (!await confirmar('¿Eliminamos este día?', `"${d.nombre}" y sus ejercicios.`, 'Sí, eliminar')) return;
+    try { await api('/dias/' + d.id, { method: 'DELETE' }); setDiaForm(null); cargar(); avisar('Día eliminado'); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  // Reordenar: arrastre en escritorio, flechas en el celular.
+  async function reordenar(dia, desde, hacia) {
+    if (hacia < 0 || hacia >= dia.items.length || desde === hacia) return;
+    const ids = dia.items.map(i => i.id);
+    const [m] = ids.splice(desde, 1); ids.splice(hacia, 0, m);
+    const copia = { ...r, dias: r.dias.map(d => d.id !== dia.id ? d
+      : { ...d, items: ids.map(i => d.items.find(x => x.id === i)) }) };
+    setR(copia);
+    try { await api('/dias/' + dia.id + '/orden', { method: 'PATCH', body: { ids } }); }
+    catch (e) { avisar(e.message, 'mal'); cargar(); }
+  }
+
+  return (<div>
+    <button className="volver" onClick={volver}>← Volver a la ficha</button>
+    <h2>{r.nombre}</h2>
+    <p className="suave" style={{ marginBottom: 18 }}>
+      Tocá un ejercicio para cambiarle series o repeticiones. Arrastralo (o usá las flechas) para reordenar.
+    </p>
+
+    {r.dias.map((d, i) => {
+      const q = busq[d.id] || '';
+      const hits = q ? ejercicios.filter(e => e.nombre.toLowerCase().includes(q.toLowerCase())).slice(0, 5) : [];
+      return (
+        <div className="dia" key={d.id}>
+          <div className="row">
+            <h3>{d.nombre || 'Día ' + (i + 1)}</h3>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              {d.dia_sugerido && <span className="globo">{d.dia_sugerido}</span>}
+              <button className="btn linea chico" onClick={() => setDiaForm(d)}>Editar día</button>
+            </div>
+          </div>
+
+          {!d.items.length && <p className="suave" style={{ margin: '10px 0' }}>Sin ejercicios todavía.</p>}
+          {d.items.map((it, idx) => (
+            <div className="ej" key={it.id} draggable
+              onDragStart={() => { arrastrando.current = { dia: d.id, idx }; }}
+              onDragOver={e => e.preventDefault()}
+              onDrop={e => { e.preventDefault();
+                if (arrastrando.current && arrastrando.current.dia === d.id) reordenar(d, arrastrando.current.idx, idx);
+                arrastrando.current = null; }}>
+              <div className="ej-top">
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <span className="mango" title="Arrastrar">⠿</span>
+                  <div>
+                    <b>{it.ejercicio}</b>
+                    {it.video_url
+                      ? <div><a className="video" href={it.video_url} target="_blank" rel="noopener">Ver el video</a></div>
+                      : <div className="chico">Sin video</div>}
+                    {it.nota && <div className="chico">{it.nota}</div>}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div className="series">{it.series}×{it.reps}</div>
+                  <div style={{ display: 'flex', gap: 4, marginTop: 6, justifyContent: 'flex-end' }}>
+                    <button className="mini" onClick={() => reordenar(d, idx, idx - 1)} disabled={idx === 0} title="Subir">↑</button>
+                    <button className="mini" onClick={() => reordenar(d, idx, idx + 1)} disabled={idx === d.items.length - 1} title="Bajar">↓</button>
+                    <button className="btn linea chico" style={{ padding: '5px 10px', fontSize: 12.5 }}
+                      onClick={() => setForm({ item_id: it.id, titulo: it.ejercicio, series: it.series || '',
+                        reps: it.reps || '', nota: it.nota || '' })}>Cambiar</button>
+                  </div>
+                </div>
+              </div>
+            </div>))}
+
+          <label style={{ marginTop: 14 }}>Buscar en tu banco
+            <input value={q} placeholder="Escribí el nombre..." autoComplete="off"
+              onChange={e => setBusq({ ...busq, [d.id]: e.target.value })} /></label>
+          {q &&
+            <div className="lista">
+              {hits.map(e => (
+                <button className="op" key={e.id} onClick={() => setForm({ diaId: d.id, ejercicio_id: e.id,
+                  titulo: e.nombre, series: '4', reps: '10', nota: '' })}>
+                  <b>{e.nombre}</b> <span className="chico">{e.grupo || ''}</span></button>))}
+              <button className="op" style={{ color: 'var(--verde)' }}
+                onClick={() => setForm({ diaId: d.id, ejercicio_id: null, nombreNuevo: q, titulo: q,
+                  series: '4', reps: '10', nota: '', grupo: '', video: '' })}>
+                <b>Crear "{q}"</b> y sumarlo al banco</button>
+            </div>}
+        </div>);
+    })}
+
+    <button className="btn linea" onClick={() => setDiaForm({ nombre: 'Día ' + (r.dias.length + 1), dia_sugerido: '' })}>
+      Agregar otro día</button>
+
+    {form &&
+      <Modal titulo={form.titulo} sub={form.item_id ? 'Cambiá lo que necesites.' : '¿Cómo lo hace tu alumno?'}
+        cerrar={() => setForm(null)}>
+        {form.ejercicio_id === null && !form.item_id && (<div>
+          <label>Link del video<input value={form.video} placeholder="Opcional"
+            onChange={e => setForm({ ...form, video: e.target.value })} /></label>
+          <label>Grupo muscular
+            <select value={form.grupo} onChange={e => setForm({ ...form, grupo: e.target.value })}>
+              <option value="">Sin grupo</option>
+              {grupos.map(g => <option key={g.id} value={g.nombre}>{g.nombre}</option>)}
+            </select></label>
+        </div>)}
+        <div className="dos">
+          <label>Series<input value={form.series} onChange={e => setForm({ ...form, series: e.target.value })} /></label>
+          <label>Repeticiones<input value={form.reps} onChange={e => setForm({ ...form, reps: e.target.value })} /></label>
+        </div>
+        <label>Nota para el alumno<input value={form.nota} placeholder="Opcional"
+          onChange={e => setForm({ ...form, nota: e.target.value })} /></label>
+        <button className="btn" onClick={guardarItem}>{form.item_id ? 'Guardar cambios' : 'Agregar a la rutina'}</button>
+        {form.item_id &&
+          <button className="btn riesgo" style={{ marginTop: 10 }}
+            onClick={() => quitar({ id: form.item_id, ejercicio: form.titulo })}>Sacar de la rutina</button>}
+      </Modal>}
+
+    {diaForm &&
+      <Modal titulo={diaForm.id ? 'Editar día' : 'Nuevo día'} cerrar={() => setDiaForm(null)}>
+        <label>Nombre<input autoFocus value={diaForm.nombre || ''}
+          onChange={e => setDiaForm({ ...diaForm, nombre: e.target.value })} /></label>
+        <label>Día sugerido<input value={diaForm.dia_sugerido || ''} placeholder="Lunes (opcional)"
+          onChange={e => setDiaForm({ ...diaForm, dia_sugerido: e.target.value })} /></label>
+        <button className="btn" onClick={guardarDia}>Guardar</button>
+        {diaForm.id &&
+          <button className="btn riesgo" style={{ marginTop: 10 }} onClick={() => borrarDia(diaForm)}>Eliminar este día</button>}
+      </Modal>}
+  </div>);
+}
+
+/* ---------- agenda ---------- */
+function Agenda({ clientes, recargarTurnos }) {
+  const [fecha, setFecha] = useState(hoyISO());
+  const [dia, setDia] = useState(null);
+  const [form, setForm] = useState(null);
+  const { avisar, confirmar } = usarAviso();
+
+  const cargar = useCallback(async () => {
+    try { setDia(await api('/turnos?fecha=' + fecha)); } catch (e) { avisar(e.message, 'mal'); }
+  }, [fecha, avisar]);
+  useEffect(() => { cargar(); }, [cargar]);
+
+  // Se puede navegar un mes para atrás y uno para adelante.
+  const limite = dias => {
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + dias);
+    return d.toISOString().slice(0, 10);
+  };
+  const mover = n => {
+    const d = new Date(fecha + 'T00:00:00'); d.setDate(d.getDate() + n);
+    const nueva = d.toISOString().slice(0, 10);
+    if (nueva < limite(-31) || nueva > limite(31)) { avisar('Podés moverte un mes para cada lado', 'mal'); return; }
+    setFecha(nueva);
+  };
+
+  async function guardar() {
+    try {
+      if (form.id) await api('/turnos/' + form.id, { method: 'PATCH', body: form });
+      else await api('/turnos', { method: 'POST', body: form });
+      setForm(null); await cargar(); await recargarTurnos(); avisar('Turno guardado');
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function borrar(t) {
+    if (!await confirmar('¿Eliminamos este turno?', `${t.alumno}, ${DIAS[t.dia_semana]} ${t.hora}`, 'Sí, eliminar')) return;
+    try { await api('/turnos/' + t.id, { method: 'DELETE' }); await cargar(); await recargarTurnos(); avisar('Turno eliminado'); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  const finDe = t => {
+    const [h, m] = t.hora.split(':').map(Number);
+    const total = h * 60 + m + (t.duracion || 60);
+    return String(Math.floor(total / 60) % 24).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+  };
+  const nombreFecha = f => {
+    const d = new Date(f + 'T00:00:00');
+    return `${DIAS[d.getDay()]} ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+  };
+  const esHoy = fecha === hoyISO();
+  const turnos = dia ? dia.turnos : [];
+  const choques = turnos.filter(t => t.choca);
+
+  return (<div>
+    <div className="row" style={{ marginBottom: 14 }}>
+      <h2>Tu agenda</h2>
+      <button className="btn chico" disabled={!clientes.length}
+        onClick={() => setForm({ cliente_id: clientes[0].id,
+          dia_semana: new Date(fecha + 'T00:00:00').getDay(), hora: '09:00', duracion: 60, nota: '' })}>
+        Sumar turno</button>
+    </div>
+
+    <div className="navdia">
+      <button className="mini" onClick={() => mover(-1)} title="Día anterior">‹</button>
+      <div style={{ textAlign: 'center', flex: 1 }}>
+        <b>{nombreFecha(fecha)}</b>
+        {esHoy && <span className="globo ok" style={{ marginLeft: 8 }}>hoy</span>}
+        <div><input type="date" className="fecha" value={fecha} min={limite(-31)} max={limite(31)}
+          onChange={e => e.target.value && setFecha(e.target.value)} /></div>
+      </div>
+      <button className="mini" onClick={() => mover(1)} title="Día siguiente">›</button>
+    </div>
+    {!esHoy && <button className="btn linea chico" style={{ marginBottom: 14 }}
+      onClick={() => setFecha(hoyISO())}>Volver a hoy</button>}
+
+    {!clientes.length && <div className="vacio"><p>Primero cargá alumnos para poder darles horario.</p></div>}
+
+    {!!choques.length &&
+      <div className="recordatorio" style={{ borderLeftColor: 'var(--coral)' }}>
+        <h3>Tenés horarios superpuestos este día</h3>
+        <p className="suave">Fijate los turnos marcados abajo.</p>
+      </div>}
+
+    {!turnos.length && !!clientes.length &&
+      <div className="vacio"><p>Este día está libre.</p>
+        <button className="btn chico" onClick={() => setForm({ cliente_id: clientes[0].id,
+          dia_semana: new Date(fecha + 'T00:00:00').getDay(), hora: '09:00', duracion: 60, nota: '' })}>
+          Sumar uno</button></div>}
+
+    {turnos.map(t => (
+      <div className="card turno" key={t.id}>
+        <div className="horario">{t.hora}</div>
+        <div className="quien">
+          <b>{t.alumno}</b>
+          <div className="chico">{t.duracion} min, hasta {finDe(t)}{t.nota ? '. ' + t.nota : ''}</div>
+          {t.choca && <span className="globo alerta" style={{ marginTop: 6 }}>Se pisa con otro turno</span>}
+        </div>
+        <div className="acciones">
+          <button className="btn linea chico" onClick={() => setForm(t)}>Editar</button>
+          <button className="btn riesgo chico" onClick={() => borrar(t)}>Quitar</button>
+        </div>
+      </div>))}
+
+    {form &&
+      <Modal titulo={form.id ? 'Editar turno' : 'Nuevo turno'}
+        sub="Es el horario fijo semanal del alumno." cerrar={() => setForm(null)}>
+        {!form.id &&
+          <label>Alumno
+            <select value={form.cliente_id} onChange={e => setForm({ ...form, cliente_id: e.target.value })}>
+              {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+            </select></label>}
+        <label>Día
+          <select value={form.dia_semana} onChange={e => setForm({ ...form, dia_semana: +e.target.value })}>
+            {[1, 2, 3, 4, 5, 6, 0].map(d => <option key={d} value={d}>{DIAS[d]}</option>)}
+          </select></label>
+        <div className="dos">
+          <label>Hora<input type="time" value={form.hora} onChange={e => setForm({ ...form, hora: e.target.value })} /></label>
+          <label>Duración (min)<input type="number" value={form.duracion}
+            onChange={e => setForm({ ...form, duracion: +e.target.value })} /></label>
+        </div>
+        <label>Nota<input value={form.nota || ''} placeholder="Opcional"
+          onChange={e => setForm({ ...form, nota: e.target.value })} /></label>
+        <button className="btn" onClick={guardar}>Guardar turno</button>
+      </Modal>}
+  </div>);
+}
+
+/* ---------- plantillas ---------- */
+function EditorPlantilla({ id, volver, ejercicios, grupos, recargarEjercicios, recargar }) {
+  const [p, setP] = useState(null);
+  const [busq, setBusq] = useState({});
+  const [form, setForm] = useState(null);
+  const [diaForm, setDiaForm] = useState(null);
+  const arrastrando = useRef(null);
+  const { avisar, confirmar } = usarAviso();
+
+  const cargar = useCallback(async () => {
+    try { setP(await api('/plantillas/' + id)); } catch (e) { avisar(e.message, 'mal'); }
+  }, [id, avisar]);
+  useEffect(() => { cargar(); }, [cargar]);
+  if (!p) return <p className="suave">Cargando...</p>;
+
+  async function guardarItem() {
+    try {
+      if (form.item_id) {
+        await api('/plantilla-items/' + form.item_id, { method: 'PATCH',
+          body: { series: form.series, reps: form.reps, nota: form.nota } });
+      } else {
+        let ejId = form.ejercicio_id;
+        if (!ejId) {
+          const e = await api('/ejercicios', { method: 'POST',
+            body: { nombre: form.nombreNuevo, grupo: form.grupo, video_url: form.video } });
+          ejId = e.id; await recargarEjercicios();
+        }
+        await api('/plantilla-dias/' + form.diaId + '/items', { method: 'POST',
+          body: { ejercicio_id: ejId, series: form.series, reps: form.reps, nota: form.nota } });
+        setBusq({ ...busq, [form.diaId]: '' });
+      }
+      setForm(null); cargar(); await recargar(); avisar('Guardado');
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function quitar(it) {
+    if (!await confirmar('¿Sacamos este ejercicio?', it.ejercicio, 'Sí, sacarlo')) return;
+    try { await api('/plantilla-items/' + it.id, { method: 'DELETE' }); setForm(null); cargar(); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function guardarDia() {
+    try {
+      if (diaForm.id) await api('/plantilla-dias/' + diaForm.id, { method: 'PATCH', body: diaForm });
+      else await api('/plantillas/' + id + '/dias', { method: 'POST', body: diaForm });
+      setDiaForm(null); cargar(); await recargar(); avisar('Día guardado');
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function borrarDia(d) {
+    if (!await confirmar('¿Eliminamos este día?', `"${d.nombre}" y sus ejercicios.`, 'Sí, eliminar')) return;
+    try { await api('/plantilla-dias/' + d.id, { method: 'DELETE' }); setDiaForm(null); cargar(); await recargar(); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function reordenar(dia, desde, hacia) {
+    if (hacia < 0 || hacia >= dia.items.length || desde === hacia) return;
+    const ids = dia.items.map(i => i.id);
+    const [m] = ids.splice(desde, 1); ids.splice(hacia, 0, m);
+    setP({ ...p, dias: p.dias.map(d => d.id !== dia.id ? d
+      : { ...d, items: ids.map(i => d.items.find(x => x.id === i)) }) });
+    try { await api('/plantilla-dias/' + dia.id + '/orden', { method: 'PATCH', body: { ids } }); }
+    catch (e) { avisar(e.message, 'mal'); cargar(); }
+  }
+
+  return (<div>
+    <button className="volver" onClick={volver}>← Tus plantillas</button>
+    <h2>{p.nombre}</h2>
+    <p className="suave" style={{ marginBottom: 18 }}>
+      Armala una vez y usala con cualquier alumno, ahora o más adelante.
+    </p>
+
+    {p.dias.map((d, i) => {
+      const q = busq[d.id] || '';
+      const hits = q ? ejercicios.filter(e => e.nombre.toLowerCase().includes(q.toLowerCase())).slice(0, 5) : [];
+      return (
+        <div className="dia" key={d.id}>
+          <div className="row">
+            <h3>{d.nombre || 'Día ' + (i + 1)}</h3>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              {d.dia_sugerido && <span className="globo">{d.dia_sugerido}</span>}
+              <button className="btn linea chico" onClick={() => setDiaForm(d)}>Editar día</button>
+            </div>
+          </div>
+          {!d.items.length && <p className="suave" style={{ margin: '10px 0' }}>Sin ejercicios todavía.</p>}
+          {d.items.map((it, idx) => (
+            <div className="ej" key={it.id} draggable
+              onDragStart={() => { arrastrando.current = { dia: d.id, idx }; }}
+              onDragOver={e => e.preventDefault()}
+              onDrop={e => { e.preventDefault();
+                if (arrastrando.current && arrastrando.current.dia === d.id) reordenar(d, arrastrando.current.idx, idx);
+                arrastrando.current = null; }}>
+              <div className="ej-top">
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <span className="mango">⠿</span>
+                  <div><b>{it.ejercicio}</b>{it.nota && <div className="chico">{it.nota}</div>}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div className="series">{it.series}×{it.reps}</div>
+                  <div style={{ display: 'flex', gap: 4, marginTop: 6, justifyContent: 'flex-end' }}>
+                    <button className="mini" onClick={() => reordenar(d, idx, idx - 1)} disabled={idx === 0}>↑</button>
+                    <button className="mini" onClick={() => reordenar(d, idx, idx + 1)}
+                      disabled={idx === d.items.length - 1}>↓</button>
+                    <button className="btn linea chico" style={{ padding: '5px 10px', fontSize: 12.5 }}
+                      onClick={() => setForm({ item_id: it.id, titulo: it.ejercicio, series: it.series || '',
+                        reps: it.reps || '', nota: it.nota || '' })}>Cambiar</button>
+                  </div>
+                </div>
+              </div>
+            </div>))}
+
+          <label style={{ marginTop: 14 }}>Buscar en tu banco
+            <input value={q} placeholder="Escribí el nombre..." autoComplete="off"
+              onChange={e => setBusq({ ...busq, [d.id]: e.target.value })} /></label>
+          {q &&
+            <div className="lista">
+              {hits.map(e => (
+                <button className="op" key={e.id} onClick={() => setForm({ diaId: d.id, ejercicio_id: e.id,
+                  titulo: e.nombre, series: '4', reps: '10', nota: '' })}>
+                  <b>{e.nombre}</b> <span className="chico">{e.grupo || ''}</span></button>))}
+              <button className="op" style={{ color: 'var(--verde)' }}
+                onClick={() => setForm({ diaId: d.id, ejercicio_id: null, nombreNuevo: q, titulo: q,
+                  series: '4', reps: '10', nota: '', grupo: '', video: '' })}>
+                <b>Crear "{q}"</b> y sumarlo al banco</button>
+            </div>}
+        </div>);
+    })}
+
+    <button className="btn linea" onClick={() => setDiaForm({ nombre: 'Día ' + (p.dias.length + 1), dia_sugerido: '' })}>
+      Agregar otro día</button>
+
+    {form &&
+      <Modal titulo={form.titulo} cerrar={() => setForm(null)}>
+        {form.ejercicio_id === null && !form.item_id && (<div>
+          <label>Link del video<input value={form.video} placeholder="Opcional"
+            onChange={e => setForm({ ...form, video: e.target.value })} /></label>
+          <label>Grupo muscular
+            <select value={form.grupo} onChange={e => setForm({ ...form, grupo: e.target.value })}>
+              <option value="">Sin grupo</option>
+              {grupos.map(g => <option key={g.id} value={g.nombre}>{g.nombre}</option>)}
+            </select></label>
+        </div>)}
+        <div className="dos">
+          <label>Series<input value={form.series} onChange={e => setForm({ ...form, series: e.target.value })} /></label>
+          <label>Repeticiones<input value={form.reps} onChange={e => setForm({ ...form, reps: e.target.value })} /></label>
+        </div>
+        <label>Nota<input value={form.nota} placeholder="Opcional"
+          onChange={e => setForm({ ...form, nota: e.target.value })} /></label>
+        <button className="btn" onClick={guardarItem}>{form.item_id ? 'Guardar cambios' : 'Agregar'}</button>
+        {form.item_id &&
+          <button className="btn riesgo" style={{ marginTop: 10 }}
+            onClick={() => quitar({ id: form.item_id, ejercicio: form.titulo })}>Sacar de la plantilla</button>}
+      </Modal>}
+
+    {diaForm &&
+      <Modal titulo={diaForm.id ? 'Editar día' : 'Nuevo día'} cerrar={() => setDiaForm(null)}>
+        <label>Nombre<input autoFocus value={diaForm.nombre || ''}
+          onChange={e => setDiaForm({ ...diaForm, nombre: e.target.value })} /></label>
+        <label>Día sugerido<input value={diaForm.dia_sugerido || ''} placeholder="Lunes (opcional)"
+          onChange={e => setDiaForm({ ...diaForm, dia_sugerido: e.target.value })} /></label>
+        <button className="btn" onClick={guardarDia}>Guardar</button>
+        {diaForm.id &&
+          <button className="btn riesgo" style={{ marginTop: 10 }} onClick={() => borrarDia(diaForm)}>Eliminar este día</button>}
+      </Modal>}
+  </div>);
+}
+
+function Plantillas({ plantillas, recargar, clientes, ejercicios, grupos, recargarEjercicios }) {
+  const [editando, setEditando] = useState(null);
+  const [nueva, setNueva] = useState(null);
+  const [usar, setUsar] = useState(null);
+  const { avisar, confirmar } = usarAviso();
+
+  if (editando) return <EditorPlantilla id={editando} volver={() => setEditando(null)}
+    ejercicios={ejercicios} grupos={grupos} recargarEjercicios={recargarEjercicios} recargar={recargar} />;
+
+  async function crear() {
+    try {
+      const dias = [];
+      for (let i = 0; i < nueva.cantidad; i++) dias.push({ nombre: `Día ${i + 1}` });
+      const p = await api('/plantillas', { method: 'POST', body: { nombre: nueva.nombre, dias } });
+      setNueva(null); await recargar(); avisar('Plantilla creada'); setEditando(p.id);
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+  async function aplicar(clienteId) {
+    try { await api('/plantillas/' + usar + '/usar', { method: 'POST', body: { cliente_id: clienteId } });
+      setUsar(null); avisar('Rutina creada para el alumno'); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+  async function borrar(p) {
+    if (!await confirmar('¿Eliminamos esta plantilla?', p.nombre, 'Sí, eliminar')) return;
+    try { await api('/plantillas/' + p.id, { method: 'DELETE' }); await recargar(); avisar('Plantilla eliminada'); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  return (<div>
+    <div className="row" style={{ marginBottom: 8 }}>
+      <h2>Tus plantillas</h2>
+      <button className="btn chico" onClick={() => setNueva({ nombre: '', cantidad: 3 })}>Crear plantilla</button>
+    </div>
+    <p className="suave" style={{ marginBottom: 18 }}>
+      Rutinas base listas para asignar. Podés armarlas ahora, aunque todavía no tengas alumnos cargados.
+    </p>
+
+    {!plantillas.length &&
+      <div className="vacio"><p>Una plantilla es una rutina base que después asignás a quien quieras.</p>
+        <button className="btn chico" onClick={() => setNueva({ nombre: '', cantidad: 3 })}>Crear la primera</button></div>}
+
+    {plantillas.map(p => (
+      <div className="card" key={p.id}>
+        <div className="row"><h3>{p.nombre}</h3><span className="globo">{p.dias} días</span></div>
+        <div className="acciones" style={{ marginTop: 12 }}>
+          <button className="btn linea chico" onClick={() => setEditando(p.id)}>Editar</button>
+          <button className="btn chico" onClick={() => setUsar(p.id)} disabled={!clientes.length}>Asignar a alumno</button>
+          <button className="btn riesgo chico" onClick={() => borrar(p)}>Eliminar</button>
+        </div>
+      </div>))}
+
+    {nueva &&
+      <Modal titulo="Nueva plantilla" sub="Después le cargás los ejercicios." cerrar={() => setNueva(null)}>
+        <label>Nombre<input autoFocus value={nueva.nombre} placeholder="Full body principiantes"
+          onChange={e => setNueva({ ...nueva, nombre: e.target.value })} /></label>
+        <label>¿Cuántos días?
+          <select value={nueva.cantidad} onChange={e => setNueva({ ...nueva, cantidad: +e.target.value })}>
+            {[1, 2, 3, 4, 5, 6].map(n => <option key={n} value={n}>{n} días</option>)}
+          </select></label>
+        <button className="btn" onClick={crear} disabled={!nueva.nombre.trim()}>Crear y armar</button>
+      </Modal>}
+
+    {usar &&
+      <Modal titulo="¿Para qué alumno?" cerrar={() => setUsar(null)}>
+        <div className="lista">
+          {clientes.map(c => <button className="op" key={c.id} onClick={() => aplicar(c.id)}>{c.nombre}</button>)}
+        </div>
+      </Modal>}
+  </div>);
+}
+
+/* ---------- administración ---------- */
+function Admin() {
+  const [cuentas, setCuentas] = useState(null);
+  const { avisar, confirmar } = usarAviso();
+
+  const cargar = useCallback(async () => {
+    try { setCuentas(await api('/admin/cuentas')); } catch (e) { avisar(e.message, 'mal'); setCuentas([]); }
+  }, [avisar]);
+  useEffect(() => { cargar(); }, [cargar]);
+
+  if (cuentas === null) return <p className="suave">Cargando...</p>;
+
+  async function cambiarPlan(c, plan) {
+    try { await api('/admin/cuentas/' + c.id, { method: 'PATCH', body: { plan } }); await cargar(); avisar('Plan actualizado'); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+  async function borrar(c) {
+    if (!await confirmar('¿Eliminar la cuenta de ' + c.nombre + '?',
+      'Se borran sus alumnos, rutinas y ejercicios. No hay vuelta atrás.', 'Sí, eliminar')) return;
+    try { await api('/admin/cuentas/' + c.id, { method: 'DELETE' }); await cargar(); avisar('Cuenta eliminada'); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  return (<div>
+    <h2>Cuentas del sistema</h2>
+    <p className="suave" style={{ marginBottom: 18 }}>
+      {cuentas.length} cuenta{cuentas.length === 1 ? '' : 's'} en el sistema. Desde acá las activás, pausás o eliminás.
+    </p>
+    {cuentas.map(c => (
+      <div className="card" key={c.id}>
+        <div className="row">
+          <div>
+            <h3>{c.nombre} {c.rol === 'admin' && <span className="globo">admin</span>}</h3>
+            <p className="suave">{c.email}</p>
+            <p className="chico">{c.alumnos} alumnos, {c.ejercicios} ejercicios. Desde {fmt(c.creada)}</p>
+          </div>
+          <span className={'globo ' + (c.plan === 'activo' ? 'ok' : c.plan === 'pausado' ? 'aviso' : '')}>{c.plan}</span>
+        </div>
+        <div className="dos" style={{ marginTop: 12 }}>
+          <select value={c.plan} onChange={e => cambiarPlan(c, e.target.value)} style={{ marginTop: 0 }}>
+            <option value="prueba">En prueba</option>
+            <option value="activo">Activo (paga)</option>
+            <option value="pausado">Pausado</option>
+          </select>
+          {c.rol !== 'admin' && <button className="btn riesgo chico" onClick={() => borrar(c)}>Eliminar cuenta</button>}
+        </div>
+      </div>))}
+  </div>);
+}
+
+/* ---------- vista del alumno ---------- */
+function VistaAlumno({ token }) {
+  const [d, setD] = useState(null);
+  const [error, setError] = useState('');
+  const [peso, setPeso] = useState('');
+  const [nota, setNota] = useState('');
+  const [log, setLog] = useState({});
+  const { avisar } = usarAviso();
+
+  const cargar = useCallback(() => {
+    fetch('/api/alumno/' + token).then(r => r.json())
+      .then(x => x.error ? setError(x.error) : setD(x))
+      .catch(() => setError('No pudimos cargar tu rutina.'));
+  }, [token]);
+  useEffect(cargar, [cargar]);
+
+  async function anotar(item) {
+    const v = log[item.id] || {};
+    if (!v.kg || !v.reps) { avisar('Cargá el peso y las repeticiones', 'mal'); return; }
+    const r = await fetch('/api/alumno/' + token + '/series', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ item_id: item.id, kg: v.kg, reps: v.reps })
+    }).then(x => x.json());
+    setLog({ ...log, [item.id]: {} });
+    if (r.hoy) setD(prev => ({ ...prev, hoy: r.hoy }));
+  }
+
+  async function borrarSerie(id) {
+    const r = await fetch('/api/alumno/' + token + '/series/' + id, { method: 'DELETE' }).then(x => x.json());
+    if (r.hoy) setD(prev => ({ ...prev, hoy: r.hoy }));
+    avisar('Serie borrada');
+  }
+
+  async function guardarPeso() {
+    if (!peso) { avisar('Cargá tu peso', 'mal'); return; }
+    await fetch('/api/alumno/' + token + '/seguimiento', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ peso, nota })
+    });
+    setPeso(''); setNota(''); avisar('Seguimiento guardado'); cargar();
+  }
+
+  if (error) return <div className="wrap"><div className="vacio"><p>{error}</p></div></div>;
+  if (!d) return <div className="wrap"><p className="suave">Cargando...</p></div>;
+
+  const hoyPorItem = {};
+  (d.hoy || []).forEach(s => { (hoyPorItem[s.item_id] ||= []).push(s); });
+
+  return (<div>
+    <div className="topbar"><div className="brand"><h1>AppTrainner</h1><span className="hola">tu rutina</span></div></div>
+    <div className="wrap">
+      <h2>Hola, {(d.nombre || '').split(' ')[0]}</h2>
+      {!d.rutina
+        ? <div className="vacio" style={{ marginTop: 16 }}><p>Tu profe todavía no cargó tu rutina. Escribile y avisale.</p></div>
+        : (<div>
+          <p className="suave" style={{ marginBottom: 18 }}>{d.rutina.nombre}, semana {d.semana}</p>
+          {d.rutina.dias.map((dia, i) => (
+            <div className="dia" key={dia.id}>
+              <div className="row">
+                <h3>{dia.nombre || 'Día ' + (i + 1)}</h3>
+                {dia.dia_sugerido && <span className="globo">{dia.dia_sugerido}</span>}
+              </div>
+              {dia.items.map(it => {
+                const hechas = hoyPorItem[it.id] || [];
+                return (
+                  <div className="ej" key={it.id}>
+                    <div className="ej-top">
+                      <div>
+                        <b>{it.ejercicio}</b>
+                        {it.video_url && <div><a className="video" href={it.video_url} target="_blank" rel="noopener">Ver el video</a></div>}
+                        {it.nota && <div className="chico">{it.nota}</div>}
+                      </div>
+                      <div className="series">{it.series}×{it.reps}</div>
+                    </div>
+
+                    {!!hechas.length &&
+                      <div className="hechas">
+                        {hechas.map((s, n) => (
+                          <div className="fila" key={s.id}>
+                            <span>{s.kg} kg × {s.reps}</span>
+                            <span className="chico" style={{ marginLeft: 'auto', marginRight: 8, fontFamily: 'inherit' }}>
+                              {s.creado ? hora(s.creado) : ''}</span>
+                            <button onClick={() => borrarSerie(s.id)}>borrar</button>
+                          </div>))}
+                      </div>}
+
+                    <div className="anotar">
+                      <input type="number" inputMode="decimal" placeholder="kg"
+                        value={(log[it.id] || {}).kg || ''}
+                        onChange={e => setLog({ ...log, [it.id]: { ...log[it.id], kg: e.target.value } })} />
+                      <input type="number" inputMode="numeric" placeholder="reps"
+                        value={(log[it.id] || {}).reps || ''}
+                        onChange={e => setLog({ ...log, [it.id]: { ...log[it.id], reps: e.target.value } })} />
+                      <button className="btn chico" style={{ whiteSpace: 'nowrap' }}
+                        onClick={() => anotar(it)}>Anotar</button>
+                    </div>
+                  </div>);
+              })}
+            </div>))}
+        </div>)}
+
+      <div className="card">
+        <h3>Tu seguimiento</h3>
+        <p className="suave" style={{ marginBottom: 12 }}>Cargá tu peso cada tanto así tu profe ve cómo venís.</p>
+        <div className="dos">
+          <label>Peso corporal (kg)<input type="number" inputMode="decimal" value={peso} onChange={e => setPeso(e.target.value)} /></label>
+          <label>¿Cómo te sentiste?<input value={nota} onChange={e => setNota(e.target.value)} placeholder="Opcional" /></label>
+        </div>
+        <button className="btn naranja" onClick={guardarPeso}>Guardar</button>
+        {(d.seguimiento || []).slice(0, 8).map(s =>
+          <p className="suave" key={s.id} style={{ marginTop: 6 }}>
+            <b style={{ fontFamily: "'Chivo',sans-serif" }}>{s.peso} kg</b>{' el ' + fmt(s.fecha)}</p>)}
+      </div>
+    </div>
+  </div>);
+}
+
+/* ---------- app ---------- */
+function App() {
+  const ruta = location.pathname.match(/^\/r\/([A-Za-z0-9]+)/);
+  const tokenAlumno = ruta ? ruta[1] : new URLSearchParams(location.search).get('alumno');
+
+  const [entrado, setEntrado] = useState(!!sesion);
+  const [perfil, setPerfil] = useState(null);
+  const [tab, setTab] = useState('alumnos');
+  const [clientes, setClientes] = useState([]);
+  const [ejercicios, setEjercicios] = useState([]);
+  const [grupos, setGrupos] = useState([]);
+  const [plantillas, setPlantillas] = useState([]);
+  const [clienteId, setClienteId] = useState(null);
+  const [rutinaId, setRutinaId] = useState(null);
+  const { avisar } = usarAviso();
+
+  const recargarClientes = useCallback(async () => {
+    try { setClientes(await api('/clientes')); } catch (e) { avisar(e.message, 'mal'); }
+  }, [avisar]);
+  const recargarEjercicios = useCallback(async () => {
+    try { const r = await api('/ejercicios'); setEjercicios(r.ejercicios); setGrupos(r.grupos); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }, [avisar]);
+  const recargarPlantillas = useCallback(async () => {
+    try { setPlantillas(await api('/plantillas')); } catch (e) { avisar(e.message, 'mal'); }
+  }, [avisar]);
+  const [versionTurnos, setVersionTurnos] = useState(0);
+  const recargarTurnos = useCallback(async () => setVersionTurnos(v => v + 1), []);
+
+  useEffect(() => {
+    if (!entrado || tokenAlumno) return;
+    api('/perfil').then(setPerfil).catch(() => {});
+    recargarClientes(); recargarEjercicios(); recargarPlantillas();
+  }, [entrado, tokenAlumno, recargarClientes, recargarEjercicios, recargarPlantillas]);
+
+  if (tokenAlumno) return <VistaAlumno token={tokenAlumno} />;
+  if (!entrado) return <Entrar onEntrar={() => setEntrado(true)} />;
+
+  const esAdmin = perfil && perfil.rol === 'admin';
+  const tabs = [['alumnos', 'Alumnos'], ['agenda', 'Agenda'], ['ejercicios', 'Ejercicios'], ['plantillas', 'Plantillas']];
+  if (esAdmin) tabs.push(['admin', 'Cuentas']);
+
+  // Al cambiar de pestaña se refrescan los datos que esa vista necesita.
+  function irA(k) {
+    setClienteId(null); setRutinaId(null); setTab(k);
+    if (k === 'alumnos') recargarClientes();
+    if (k === 'ejercicios') recargarEjercicios();
+    if (k === 'plantillas') recargarPlantillas();
+  }
+
+  let contenido;
+  if (tab === 'admin' && esAdmin) contenido = <Admin />;
+  else if (tab === 'agenda') contenido =
+    <Agenda key={versionTurnos} clientes={clientes} recargarTurnos={recargarTurnos} />;
+  else if (tab === 'plantillas') contenido =
+    <Plantillas plantillas={plantillas} recargar={recargarPlantillas} clientes={clientes}
+      ejercicios={ejercicios} grupos={grupos} recargarEjercicios={recargarEjercicios} />;
+  else if (tab === 'ejercicios') contenido =
+    <Ejercicios ejercicios={ejercicios} grupos={grupos} recargar={recargarEjercicios} />;
+  else if (rutinaId) contenido =
+    <Editor id={rutinaId} volver={() => setRutinaId(null)} ejercicios={ejercicios} grupos={grupos}
+      recargarEjercicios={recargarEjercicios} />;
+  else if (clienteId) contenido =
+    <Ficha id={clienteId} clientes={clientes} plantillas={plantillas} recargarPlantillas={recargarPlantillas}
+      recargarTurnos={recargarTurnos} volver={() => { setClienteId(null); recargarClientes(); }}
+      abrirRutina={setRutinaId} />;
+  else contenido = <Alumnos clientes={clientes} recargar={recargarClientes} abrir={setClienteId}
+    recargarTurnos={recargarTurnos} />;
+
+  return (<div>
+    <div className="topbar">
+      <div className="brand">
+        <h1>AppTrainner</h1>
+        <span className="hola">{perfil ? perfil.nombre : ''}</span>
+        <button onClick={() => { localStorage.removeItem(CLAVE); sesion = null; location.href = '/'; }}>Salir</button>
+      </div>
+      <div className="tabs">
+        {tabs.map(([k, t]) => (
+          <button key={k} className={'tab ' + (tab === k ? 'on' : '')} onClick={() => irA(k)}>{t}</button>))}
+      </div>
+    </div>
+    <div className="wrap">
+      <Escudo clave={tab + (clienteId || '') + (rutinaId || '')}>{contenido}</Escudo>
+    </div>
+  </div>);
+}
+
+ReactDOM.createRoot(document.getElementById('root'))
+  .render(<ProveedorAviso><App /></ProveedorAviso>);
+</script>
+</body>
+</html>
