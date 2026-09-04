@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Plan — rutinas para personal trainers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --fondo:#F6F4F1;         /* arena tibia, menos frío que el gris */
+    --panel:#FFFFFF;
+    --tinta:#2E3A3F;         /* verde grisáceo oscuro, más suave que el negro */
+    --suave:#7A8891;
+    --linea:#E3DFDA;
+    --verde:#4C9A82;         /* acción principal, tranquilo */
+    --verde-claro:#E7F2EE;
+    --durazno:#F2A65A;       /* acentos y avisos amables */
+    --durazno-claro:#FDF0E2;
+    --coral:#D9705F;         /* errores, sin agresividad */
+    --coral-claro:#FBEBE8;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--fondo)}
+  body{font-family:'Nunito',system-ui,-apple-system,sans-serif;color:var(--tinta);
+       line-height:1.55;font-size:16px;-webkit-font-smoothing:antialiased}
+  h1,h2,h3{margin:0;font-weight:800;letter-spacing:-.01em}
+  h1{font-size:27px} h2{font-size:22px} h3{font-size:17px}
+  p{margin:0}
+
+  .topbar{background:var(--tinta);color:#fff;padding:16px 16px 0;position:sticky;top:0;z-index:20;
+          border-radius:0 0 18px 18px}
+  .brand{display:flex;align-items:center;gap:9px;margin-bottom:14px}
+  .brand h1{color:#fff;font-size:23px}
+  .brand .hola{color:#B9C6CB;font-size:14px;font-weight:600}
+  .brand button{margin-left:auto;background:rgba(255,255,255,.12);border:0;color:#fff;
+                font-size:13px;font-weight:700;cursor:pointer;padding:7px 13px;border-radius:20px}
+  .tabs{display:flex;gap:6px;padding-bottom:2px}
+  .tab{flex:1;background:transparent;border:0;color:#A8B7BD;font-family:inherit;font-size:15px;
+       font-weight:700;padding:10px 4px 12px;cursor:pointer;border-bottom:3px solid transparent}
+  .tab.on{color:#fff;border-bottom-color:var(--durazno)}
+
+  .wrap{max-width:760px;margin:0 auto;padding:20px 16px 70px}
+  .card{background:var(--panel);border:1px solid var(--linea);border-radius:16px;
+        padding:18px;margin-bottom:14px;box-shadow:0 1px 2px rgba(46,58,63,.04)}
+  .card.tap{cursor:pointer;transition:border-color .15s}
+  .card.tap:active{border-color:var(--verde)}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .suave{color:var(--suave);font-size:14.5px}
+  .chico{font-size:13px;color:var(--suave)}
+
+  button{font-family:inherit}
+  .btn{background:var(--verde);color:#fff;border:0;border-radius:12px;padding:14px 18px;
+       font-size:15.5px;font-weight:700;cursor:pointer;width:100%}
+  .btn.suave{background:var(--durazno);color:#fff}
+  .btn.linea{background:#fff;color:var(--tinta);border:1.5px solid var(--linea)}
+  .btn.riesgo{background:#fff;color:var(--coral);border:1.5px solid var(--coral-claro)}
+  .btn.chico{width:auto;padding:9px 15px;font-size:14px;border-radius:10px}
+  .btn:disabled{opacity:.45;cursor:default}
+  .btn:focus-visible,input:focus,select:focus,textarea:focus{outline:3px solid var(--durazno);outline-offset:2px}
+
+  input,select,textarea{font-family:inherit;font-size:16px;color:var(--tinta);width:100%;
+    padding:13px;border:1.5px solid var(--linea);border-radius:12px;background:#fff;margin-top:6px}
+  label{display:block;font-size:13.5px;font-weight:700;margin-bottom:12px}
+
+  .globo{display:inline-block;font-size:12.5px;font-weight:700;padding:4px 11px;border-radius:20px;
+         background:#EEEBE6;color:var(--suave)}
+  .globo.aviso{background:var(--durazno-claro);color:#9A5A12}
+  .globo.ok{background:var(--verde-claro);color:#2F6B58}
+
+  .vacio{border:1.5px dashed var(--linea);border-radius:16px;padding:30px 20px;text-align:center;background:#fff}
+  .vacio p{margin-bottom:16px;color:var(--suave)}
+  .aviso{background:var(--durazno-claro);border:1px solid #F5D3AC;border-radius:14px;
+         padding:13px 15px;margin-bottom:14px;font-size:14.5px}
+
+  .dia{background:#fff;border:1px solid var(--linea);border-radius:16px;padding:16px;margin-bottom:14px}
+  .ej{border-top:1px solid var(--linea);padding:13px 0}
+  .ej-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+  .video{color:var(--verde);font-weight:700;font-size:14px;text-decoration:none}
+  .series{font-size:19px;font-weight:800;white-space:nowrap;color:var(--verde)}
+  .lista{border:1.5px solid var(--linea);border-radius:12px;margin-top:8px;background:#fff;overflow:hidden}
+  .op{padding:13px 14px;cursor:pointer;border:0;border-bottom:1px solid var(--linea);
+      font-size:15px;width:100%;text-align:left;background:none;font-family:inherit;color:var(--tinta)}
+  .op:last-child{border-bottom:0}
+  .op:hover{background:var(--verde-claro)}
+  .volver{background:none;border:0;color:var(--suave);font-size:14.5px;font-weight:700;cursor:pointer;padding:0 0 14px}
+  .dos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .anotar{display:flex;gap:8px;margin-top:10px}
+  .anotar input{margin-top:0}
+  .centro{max-width:410px;margin:50px auto;padding:0 16px}
+
+  /* ventanas propias, en vez de los carteles del navegador */
+  .fondo-modal{position:fixed;inset:0;background:rgba(46,58,63,.45);display:flex;
+    align-items:flex-end;justify-content:center;z-index:60;padding:0}
+  .modal{background:#fff;border-radius:20px 20px 0 0;padding:22px 20px 26px;width:100%;
+    max-width:520px;max-height:88vh;overflow:auto;animation:sube .18s ease-out}
+  @keyframes sube{from{transform:translateY(14px)}to{transform:none}}
+  @media (prefers-reduced-motion:reduce){.modal{animation:none}}
+  @media (min-width:560px){
+    .fondo-modal{align-items:center;padding:20px}
+    .modal{border-radius:20px}
+  }
+  .modal h3{margin-bottom:6px}
+  .modal .sub{color:var(--suave);font-size:14.5px;margin-bottom:16px}
+
+  /* mensajitos */
+  .mensajes{position:fixed;left:0;right:0;bottom:18px;display:flex;flex-direction:column;
+    align-items:center;gap:8px;z-index:80;pointer-events:none;padding:0 16px}
+  .mensaje{background:var(--tinta);color:#fff;padding:12px 18px;border-radius:14px;
+    font-size:14.5px;font-weight:600;box-shadow:0 6px 18px rgba(46,58,63,.22);max-width:460px}
+  .mensaje.mal{background:var(--coral)}
+  .mensaje.bien{background:var(--verde)}
+  .tabla{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px}
+  .tabla th,.tabla td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--linea)}
+  .tabla th{color:var(--suave);font-size:12.5px}
+  @media (max-width:430px){.dos{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, createContext, useContext } = React;
+
+const CLAVE = 'plan_pt_token';
+let sesion = localStorage.getItem(CLAVE) || null;
+
+async function api(path, opts = {}) {
+  const r = await fetch('/api' + path, {
+    method: opts.method || 'GET',
+    headers: Object.assign({ 'Content-Type': 'application/json' },
+      sesion ? { Authorization: 'Bearer ' + sesion } : {}),
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    if (r.status === 401) { sesion = null; localStorage.removeItem(CLAVE); location.reload(); }
+    const err = new Error(d.error || 'Algo no salió bien. Probá de nuevo.');
+    err.status = r.status; err.datos = d;
+    throw err;
+  }
+  return d;
+}
+
+const fmt = d => d ? d.split('-').reverse().slice(0, 2).join('/') : '—';
+const semanas = i => i ? Math.floor((Date.now() - new Date(i + 'T00:00:00')) / (7 * 864e5)) : 0;
+function paraRenovar(inicio) {
+  if (!inicio) return null;
+  const d = new Date(inicio + 'T00:00:00'); d.setDate(d.getDate() + 28);
+  return Math.ceil((d - new Date().setHours(0, 0, 0, 0)) / 864e5);
+}
+const hoyISO = () => new Date().toISOString().slice(0, 10);
+
+/* ---------- avisos y ventanas propias ---------- */
+const Aviso = createContext(null);
+const usarAviso = () => useContext(Aviso);
+
+function ProveedorAviso({ children }) {
+  const [mensajes, setMensajes] = useState([]);
+  const [pregunta, setPregunta] = useState(null);
+
+  const avisar = useCallback((texto, tipo = 'bien') => {
+    const id = Math.random();
+    setMensajes(m => [...m, { id, texto, tipo }]);
+    setTimeout(() => setMensajes(m => m.filter(x => x.id !== id)), 3600);
+  }, []);
+
+  // Reemplaza al confirm() del navegador.
+  const confirmar = useCallback((texto, detalle, etiqueta) =>
+    new Promise(res => setPregunta({ texto, detalle, etiqueta: etiqueta || 'Sí, dale', res })), []);
+
+  return (
+    <Aviso.Provider value={{ avisar, confirmar }}>
+      {children}
+      <div className="mensajes">
+        {mensajes.map(m => <div key={m.id} className={'mensaje ' + m.tipo}>{m.texto}</div>)}
+      </div>
+      {pregunta &&
+        <div className="fondo-modal" onClick={() => { pregunta.res(false); setPregunta(null); }}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h3>{pregunta.texto}</h3>
+            {pregunta.detalle && <p className="sub">{pregunta.detalle}</p>}
+            <button className="btn riesgo" onClick={() => { pregunta.res(true); setPregunta(null); }}>
+              {pregunta.etiqueta}</button>
+            <button className="btn linea" style={{ marginTop: 10 }}
+              onClick={() => { pregunta.res(false); setPregunta(null); }}>Mejor no</button>
+          </div>
+        </div>}
+    </Aviso.Provider>);
+}
+
+function Modal({ titulo, sub, children, cerrar }) {
+  useEffect(() => {
+    const esc = e => e.key === 'Escape' && cerrar();
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  }, [cerrar]);
+  return (
+    <div className="fondo-modal" onClick={cerrar}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <h3>{titulo}</h3>
+        {sub && <p className="sub">{sub}</p>}
+        {children}
+      </div>
+    </div>);
+}
+
+/* ---------- entrada ---------- */
+function Entrar({ onEntrar }) {
+  const [modo, setModo] = useState('login');
+  const [f, setF] = useState({ email: '', password: '', nombre: '' });
+  const [cargando, setCargando] = useState(false);
+  const { avisar } = usarAviso();
+  const set = k => e => setF({ ...f, [k]: e.target.value });
+
+  async function enviar() {
+    setCargando(true);
+    try {
+      const r = await api(modo === 'login' ? '/login' : '/registro', { method: 'POST', body: f });
+      sesion = r.token; localStorage.setItem(CLAVE, r.token);
+      avisar(modo === 'login' ? '¡Hola de nuevo!' : '¡Cuenta creada! Bienvenido.');
+      onEntrar(r);
+    } catch (e) { avisar(e.message, 'mal'); } finally { setCargando(false); }
+  }
+
+  return (
+    <div className="centro">
+      <h1 style={{ marginBottom: 8 }}>Plan</h1>
+      <p className="suave" style={{ marginBottom: 24 }}>
+        Armá las rutinas de tus alumnos sin volver a pegar un video nunca más.
+      </p>
+      <div className="card">
+        {modo === 'registro' &&
+          <label>¿Cómo te llamás?<input value={f.nombre} onChange={set('nombre')} placeholder="Tu nombre" /></label>}
+        <label>Mail<input type="email" value={f.email} onChange={set('email')} autoComplete="email" /></label>
+        <label>Contraseña<input type="password" value={f.password} onChange={set('password')}
+          onKeyDown={e => e.key === 'Enter' && enviar()} /></label>
+        <button className="btn" onClick={enviar} disabled={cargando}>
+          {cargando ? 'Un segundito...' : modo === 'login' ? 'Entrar' : 'Crear mi cuenta'}</button>
+        <button className="btn linea" style={{ marginTop: 10 }}
+          onClick={() => setModo(modo === 'login' ? 'registro' : 'login')}>
+          {modo === 'login' ? 'Todavía no tengo cuenta' : 'Ya tengo cuenta'}</button>
+      </div>
+    </div>);
+}
+
+/* ---------- banco de ejercicios ---------- */
+function Ejercicios({ ejercicios, recargar }) {
+  const [abierto, setAbierto] = useState(false);
+  const [f, setF] = useState({ nombre: '', grupo: '', video_url: '' });
+  const { avisar, confirmar } = usarAviso();
+  const set = k => e => setF({ ...f, [k]: e.target.value });
+
+  async function crear() {
+    try {
+      await api('/ejercicios', { method: 'POST', body: f });
+      setF({ nombre: '', grupo: '', video_url: '' }); setAbierto(false);
+      await recargar(); avisar('Ejercicio guardado en tu banco');
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+  async function borrar(ej) {
+    if (!await confirmar('¿Sacamos este ejercicio del banco?',
+      `"${ej.nombre}" ya no va a aparecer cuando armes rutinas nuevas.`, 'Sí, sacarlo')) return;
+    try {
+      await api('/ejercicios/' + ej.id, { method: 'DELETE' });
+      await recargar(); avisar('Listo, lo sacamos');
+    } catch (e) {
+      // Si ya está usado en rutinas, preguntamos antes de tocar nada.
+      if (e.status === 409) {
+        const usos = e.datos.usos;
+        if (!await confirmar('Ojo: lo estás usando',
+          `"${ej.nombre}" aparece en ${usos} rutina${usos === 1 ? '' : 's'}. Si lo sacás, también desaparece de ahí.`,
+          'Sacarlo igual')) return;
+        try {
+          await api('/ejercicios/' + ej.id + '?forzar=1', { method: 'DELETE' });
+          await recargar(); avisar('Lo sacamos del banco y de las rutinas');
+        } catch (e2) { avisar(e2.message, 'mal'); }
+      } else avisar(e.message, 'mal');
+    }
+  }
+
+  const grupos = {};
+  ejercicios.forEach(e => { (grupos[e.grupo || 'Sin grupo'] ||= []).push(e); });
+
+  return (<div>
+    <div className="row" style={{ marginBottom: 8 }}>
+      <h2>Tu banco de ejercicios</h2>
+      <button className="btn chico" onClick={() => setAbierto(true)}>Sumar uno</button>
+    </div>
+    <p className="suave" style={{ marginBottom: 18 }}>
+      Cargás el video una sola vez y después lo usás en la rutina de cualquier alumno.
+    </p>
+
+    {!ejercicios.length &&
+      <div className="vacio"><p>Tu banco todavía está vacío. El primero es el que más cuesta.</p>
+        <button className="btn chico" onClick={() => setAbierto(true)}>Cargar el primero</button></div>}
+
+    {Object.keys(grupos).sort().map(g => (
+      <div key={g}>
+        <h3 style={{ margin: '20px 0 10px' }}>{g}</h3>
+        {grupos[g].map(e => (
+          <div className="card" key={e.id} style={{ padding: '14px 16px' }}>
+            <div className="row">
+              <div>
+                <b>{e.nombre}</b>
+                {e.video_url
+                  ? <div><a className="video" href={e.video_url} target="_blank" rel="noopener">Ver el video</a></div>
+                  : <div className="chico">Sin video todavía</div>}
+              </div>
+              <button className="btn riesgo chico" onClick={() => borrar(e)}>Sacar</button>
+            </div>
+          </div>))}
+      </div>))}
+
+    {abierto &&
+      <Modal titulo="Nuevo ejercicio" sub="Queda guardado y lo reutilizás siempre."
+        cerrar={() => setAbierto(false)}>
+        <label>Nombre<input autoFocus value={f.nombre} onChange={set('nombre')} placeholder="Sentadilla con barra" /></label>
+        <label>Grupo muscular<input value={f.grupo} onChange={set('grupo')} placeholder="Piernas" /></label>
+        <label>Link del video<input value={f.video_url} onChange={set('video_url')}
+          placeholder="Pegá el link de YouTube o Instagram" /></label>
+        <button className="btn" onClick={crear} disabled={!f.nombre.trim()}>Guardar</button>
+        <button className="btn linea" style={{ marginTop: 10 }} onClick={() => setAbierto(false)}>Cancelar</button>
+      </Modal>}
+  </div>);
+}
+
+/* ---------- alumnos ---------- */
+function Alumnos({ clientes, recargar, abrir }) {
+  const [abierto, setAbierto] = useState(false);
+  const [f, setF] = useState({ nombre: '', contacto: '', inicio: hoyISO() });
+  const { avisar } = usarAviso();
+  const set = k => e => setF({ ...f, [k]: e.target.value });
+
+  async function crear() {
+    try {
+      await api('/clientes', { method: 'POST', body: f });
+      setF({ nombre: '', contacto: '', inicio: hoyISO() }); setAbierto(false);
+      await recargar(); avisar('Alumno agregado');
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  const avisos = clientes.filter(c => { const d = paraRenovar(c.inicio); return d !== null && d <= 7; });
+
+  return (<div>
+    {!!avisos.length &&
+      <div className="aviso"><b>Se viene la renovación de {avisos.map(c => c.nombre).join(', ')}.</b> Están llegando a la semana 4.</div>}
+    <div className="row" style={{ marginBottom: 16 }}>
+      <h2>Tus alumnos</h2>
+      <button className="btn chico" onClick={() => setAbierto(true)}>Sumar alumno</button>
+    </div>
+
+    {!clientes.length &&
+      <div className="vacio"><p>Todavía no cargaste ningún alumno.</p>
+        <button className="btn chico" onClick={() => setAbierto(true)}>Sumar el primero</button></div>}
+
+    {clientes.map(c => {
+      const d = paraRenovar(c.inicio);
+      return (
+        <div className="card tap" key={c.id} onClick={() => abrir(c.id)}>
+          <div className="row">
+            <h3>{c.nombre}</h3>
+            {d === null ? null
+              : d < 0 ? <span className="globo aviso">Toca renovar</span>
+              : d <= 7 ? <span className="globo aviso">Renueva en {d} días</span>
+              : <span className="globo ok">Semana {semanas(c.inicio) + 1}</span>}
+          </div>
+          <p className="suave">Arrancó el {fmt(c.inicio)}</p>
+        </div>);
+    })}
+
+    {abierto &&
+      <Modal titulo="Nuevo alumno" sub="Después le armás la rutina." cerrar={() => setAbierto(false)}>
+        <label>Nombre<input autoFocus value={f.nombre} onChange={set('nombre')} /></label>
+        <label>Teléfono o mail<input value={f.contacto} onChange={set('contacto')} placeholder="Opcional" /></label>
+        <label>¿Cuándo arrancó el plan?<input type="date" value={f.inicio} onChange={set('inicio')} /></label>
+        <button className="btn" onClick={crear} disabled={!f.nombre.trim()}>Guardar alumno</button>
+        <button className="btn linea" style={{ marginTop: 10 }} onClick={() => setAbierto(false)}>Cancelar</button>
+      </Modal>}
+  </div>);
+}
+
+/* ---------- importar desde Excel ---------- */
+function Importar({ clienteId, cerrar, listo }) {
+  const [filas, setFilas] = useState(null);
+  const [nombre, setNombre] = useState('Rutina importada');
+  const [subiendo, setSubiendo] = useState(false);
+  const { avisar } = usarAviso();
+
+  function leer(archivo) {
+    const lector = new FileReader();
+    lector.onload = ev => {
+      try {
+        const libro = XLSX.read(new Uint8Array(ev.target.result), { type: 'array' });
+        const crudas = XLSX.utils.sheet_to_json(libro.Sheets[libro.SheetNames[0]], { defval: '' });
+        const norm = crudas.map(r => {
+          const o = {};
+          Object.keys(r).forEach(k => { o[String(k).trim().toLowerCase()] = r[k]; });
+          return {
+            dia: o['dia'] || o['día'] || 'Día 1',
+            dia_sugerido: o['dia sugerido'] || o['día sugerido'] || '',
+            ejercicio: o['ejercicio'] || '',
+            grupo: o['grupo'] || '',
+            series: o['series'] || '',
+            reps: o['reps'] || o['repeticiones'] || '',
+            nota: o['nota'] || '',
+            video: o['video'] || o['link'] || ''
+          };
+        }).filter(r => String(r.ejercicio).trim());
+        if (!norm.length) { avisar('No encontramos ejercicios en ese archivo. Fijate que tenga la columna "ejercicio".', 'mal'); return; }
+        setFilas(norm);
+        if (archivo.name) setNombre(archivo.name.replace(/\.(xlsx|xls|csv)$/i, ''));
+      } catch (e) { avisar('No pudimos leer ese archivo. ¿Es un Excel o CSV?', 'mal'); }
+    };
+    lector.readAsArrayBuffer(archivo);
+  }
+
+  async function importar() {
+    setSubiendo(true);
+    try {
+      const r = await api('/clientes/' + clienteId + '/importar', { method: 'POST', body: { nombre, filas } });
+      avisar(`Importamos ${r.resumen.ejercicios} ejercicios en ${r.resumen.dias} días`);
+      listo(r.rutina.id);
+    } catch (e) { avisar(e.message, 'mal'); setSubiendo(false); }
+  }
+
+  return (
+    <Modal titulo="Traer una rutina desde Excel"
+      sub="Subí tu planilla y la convertimos en una rutina. Los ejercicios que ya estén en tu banco se reutilizan."
+      cerrar={cerrar}>
+      {!filas ? (<div>
+        <label>Archivo (.xlsx o .csv)
+          <input type="file" accept=".xlsx,.xls,.csv"
+            onChange={e => e.target.files[0] && leer(e.target.files[0])} /></label>
+        <p className="chico">Columnas que leemos: <b>dia, ejercicio, series, reps, nota, video, grupo</b>.
+          El orden no importa y las que falten se completan solas.</p>
+        <a className="video" href="/plantilla-rutina.xlsx" download style={{ display: 'block', marginTop: 12 }}>
+          Bajar la plantilla de ejemplo</a>
+        <button className="btn linea" style={{ marginTop: 14 }} onClick={cerrar}>Cancelar</button>
+      </div>) : (<div>
+        <label>Nombre de la rutina<input value={nombre} onChange={e => setNombre(e.target.value)} /></label>
+        <p className="chico">Encontramos <b>{filas.length} ejercicios</b> en {new Set(filas.map(f => f.dia)).size} días.</p>
+        <table className="tabla">
+          <thead><tr><th>Día</th><th>Ejercicio</th><th>Series</th><th>Reps</th></tr></thead>
+          <tbody>{filas.slice(0, 6).map((f, i) =>
+            <tr key={i}><td>{f.dia}</td><td>{f.ejercicio}</td><td>{f.series}</td><td>{f.reps}</td></tr>)}</tbody>
+        </table>
+        {filas.length > 6 && <p className="chico">y {filas.length - 6} más...</p>}
+        <button className="btn" style={{ marginTop: 14 }} onClick={importar} disabled={subiendo}>
+          {subiendo ? 'Importando...' : 'Importar esta rutina'}</button>
+        <button className="btn linea" style={{ marginTop: 10 }} onClick={() => setFilas(null)}>Elegir otro archivo</button>
+      </div>)}
+    </Modal>);
+}
+
+/* ---------- ficha del alumno ---------- */
+function Ficha({ id, volver, abrirRutina, clientes }) {
+  const [c, setC] = useState(null);
+  const [nueva, setNueva] = useState(null);
+  const [importar, setImportar] = useState(false);
+  const [duplicar, setDuplicar] = useState(null);
+  const { avisar, confirmar } = usarAviso();
+
+  const cargar = useCallback(() => {
+    api('/clientes/' + id).then(setC).catch(e => avisar(e.message, 'mal'));
+  }, [id]);
+  useEffect(cargar, [cargar]);
+
+  if (!c) return <p className="suave">Cargando...</p>;
+  const d = paraRenovar(c.inicio);
+  const link = location.origin + '/?alumno=' + c.token;
+
+  async function crearRutina() {
+    const dias = [];
+    for (let i = 0; i < nueva.cantidad; i++)
+      dias.push({ nombre: (nueva.dias[i] || {}).nombre || `Día ${i + 1}`,
+                  dia_sugerido: (nueva.dias[i] || {}).dia || '' });
+    try {
+      const r = await api('/clientes/' + id + '/rutinas', { method: 'POST', body: { nombre: nueva.nombre, dias } });
+      setNueva(null); avisar('Rutina creada, ahora cargale los ejercicios'); abrirRutina(r.id);
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function hacerDuplicado(destinoId) {
+    try {
+      const r = await api('/rutinas/' + duplicar + '/duplicar', { method: 'POST', body: { cliente_id: destinoId } });
+      setDuplicar(null); avisar('Rutina copiada'); abrirRutina(r.id);
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function borrar() {
+    if (!await confirmar('¿Eliminamos a ' + c.nombre + '?',
+      'Se borran también sus rutinas y su seguimiento.', 'Sí, eliminar')) return;
+    try { await api('/clientes/' + id, { method: 'DELETE' }); avisar('Alumno eliminado'); volver(); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  function copiar() {
+    navigator.clipboard.writeText(link).then(() => avisar('Link copiado, mandáselo por WhatsApp'))
+      .catch(() => avisar('No pudimos copiarlo. Seleccionalo a mano.', 'mal'));
+  }
+
+  return (<div>
+    <button className="volver" onClick={volver}>← Tus alumnos</button>
+    <h2>{c.nombre}</h2>
+    <p className="suave">{c.contacto || 'Sin contacto cargado'}</p>
+    <p className="suave" style={{ marginBottom: 16 }}>
+      Plan desde {fmt(c.inicio)} · semana {semanas(c.inicio) + 1}
+      {d !== null && d <= 7 && <span className="globo aviso" style={{ marginLeft: 8 }}>avisale de la renovación</span>}
+    </p>
+
+    <div className="card">
+      <h3>Su link personal</h3>
+      <p className="suave" style={{ margin: '4px 0 12px' }}>Entra sin contraseña, desde el celular.</p>
+      <input readOnly value={link} onFocus={e => e.target.select()} />
+      <button className="btn linea chico" style={{ marginTop: 10 }} onClick={copiar}>Copiar link</button>
+    </div>
+
+    <div className="row" style={{ margin: '20px 0 12px' }}>
+      <h3>Rutinas</h3>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button className="btn linea chico" onClick={() => setImportar(true)}>Importar Excel</button>
+        <button className="btn chico" onClick={() => setNueva({ nombre: 'Mes ' + (c.rutinas.length + 1), cantidad: 3, dias: [] })}>Nueva</button>
+      </div>
+    </div>
+
+    {!c.rutinas.length && <div className="vacio"><p>Todavía no tiene rutinas.</p></div>}
+    {c.rutinas.map(r => (
+      <div className="card" key={r.id}>
+        <h3>{r.nombre}</h3>
+        <p className="suave">Desde {fmt(r.inicio)}</p>
+        <div className="dos" style={{ marginTop: 12 }}>
+          <button className="btn linea chico" onClick={() => abrirRutina(r.id)}>Editar</button>
+          <button className="btn linea chico" onClick={() => setDuplicar(r.id)}>Copiar a otro alumno</button>
+        </div>
+      </div>))}
+
+    <div className="card" style={{ marginTop: 20 }}>
+      <h3>Lo que carga tu alumno</h3>
+      {!c.seguimiento.length && !c.series.length &&
+        <p className="suave" style={{ marginTop: 8 }}>Todavía no registró nada.</p>}
+      {!!c.seguimiento.length && <p className="chico" style={{ marginTop: 12 }}>Peso corporal</p>}
+      {c.seguimiento.map(s => <p className="suave" key={s.id}>{fmt(s.fecha)} · {s.peso} kg {s.nota ? '· ' + s.nota : ''}</p>)}
+      {!!c.series.length && <p className="chico" style={{ marginTop: 14 }}>Últimas series</p>}
+      {c.series.map(s => <p className="suave" key={s.id}>{fmt(s.fecha)} · {s.ejercicio} · {s.kg} kg × {s.reps}</p>)}
+    </div>
+
+    <button className="btn riesgo chico" onClick={borrar}>Eliminar alumno</button>
+
+    {nueva &&
+      <Modal titulo="Nueva rutina" sub="Definí los días y después cargás los ejercicios." cerrar={() => setNueva(null)}>
+        <label>Nombre<input autoFocus value={nueva.nombre} onChange={e => setNueva({ ...nueva, nombre: e.target.value })} /></label>
+        <label>¿Cuántos días entrena?
+          <select value={nueva.cantidad} onChange={e => setNueva({ ...nueva, cantidad: +e.target.value })}>
+            {[1, 2, 3, 4, 5, 6].map(n => <option key={n} value={n}>{n} días</option>)}
+          </select></label>
+        {Array.from({ length: nueva.cantidad }).map((_, i) => (
+          <div className="dos" key={i}>
+            <label>Día {i + 1}
+              <input placeholder="Tren inferior" onChange={e => {
+                const ds = [...nueva.dias]; ds[i] = { ...ds[i], nombre: e.target.value }; setNueva({ ...nueva, dias: ds });
+              }} /></label>
+            <label>Día sugerido
+              <input placeholder="Lunes (opcional)" onChange={e => {
+                const ds = [...nueva.dias]; ds[i] = { ...ds[i], dia: e.target.value }; setNueva({ ...nueva, dias: ds });
+              }} /></label>
+          </div>))}
+        <button className="btn" onClick={crearRutina}>Crear rutina</button>
+      </Modal>}
+
+    {importar &&
+      <Importar clienteId={id} cerrar={() => setImportar(false)}
+        listo={rid => { setImportar(false); abrirRutina(rid); }} />}
+
+    {duplicar &&
+      <Modal titulo="¿A quién se la copiamos?" sub="Se copia entera y después la ajustás."
+        cerrar={() => setDuplicar(null)}>
+        <div className="lista">
+          {clientes.map(x =>
+            <button className="op" key={x.id} onClick={() => hacerDuplicado(x.id)}>
+              {x.nombre}{x.id === id ? ' (el mismo alumno)' : ''}</button>)}
+        </div>
+      </Modal>}
+  </div>);
+}
+
+/* ---------- editor de rutina ---------- */
+function Editor({ id, volver, ejercicios, recargarEjercicios }) {
+  const [r, setR] = useState(null);
+  const [busq, setBusq] = useState({});
+  const [form, setForm] = useState(null);   // agregar ejercicio a un día
+  const [nuevoDia, setNuevoDia] = useState(null);
+  const { avisar, confirmar } = usarAviso();
+
+  const cargar = useCallback(() => {
+    api('/rutinas/' + id).then(setR).catch(e => avisar(e.message, 'mal'));
+  }, [id]);
+  useEffect(cargar, [cargar]);
+  if (!r) return <p className="suave">Cargando...</p>;
+
+  async function guardarItem() {
+    try {
+      let ejId = form.ejercicio_id;
+      if (!ejId) {   // ejercicio nuevo creado sobre la marcha
+        const e = await api('/ejercicios', { method: 'POST',
+          body: { nombre: form.nombreNuevo, grupo: form.grupo, video_url: form.video } });
+        ejId = e.id; await recargarEjercicios();
+      }
+      await api('/dias/' + form.diaId + '/items', { method: 'POST',
+        body: { ejercicio_id: ejId, series: form.series, reps: form.reps, nota: form.nota } });
+      setBusq({ ...busq, [form.diaId]: '' }); setForm(null); cargar(); avisar('Ejercicio agregado');
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function quitar(it) {
+    if (!await confirmar('¿Sacamos este ejercicio de la rutina?', it.ejercicio, 'Sí, sacarlo')) return;
+    try { await api('/items/' + it.id, { method: 'DELETE' }); cargar(); avisar('Listo'); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function guardarDia() {
+    try {
+      await api('/rutinas/' + id + '/dias', { method: 'POST', body: nuevoDia });
+      setNuevoDia(null); cargar(); avisar('Día agregado');
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  return (<div>
+    <button className="volver" onClick={volver}>← Volver a la ficha</button>
+    <h2>{r.nombre}</h2>
+    <p className="suave" style={{ marginBottom: 18 }}>
+      Elegí ejercicios de tu banco. Si no está, lo creás acá mismo y queda guardado.
+    </p>
+
+    {r.dias.map((d, i) => {
+      const q = busq[d.id] || '';
+      const hits = q ? ejercicios.filter(e => e.nombre.toLowerCase().includes(q.toLowerCase())).slice(0, 5) : [];
+      return (
+        <div className="dia" key={d.id}>
+          <div className="row">
+            <h3>{d.nombre || 'Día ' + (i + 1)}</h3>
+            {d.dia_sugerido && <span className="globo">{d.dia_sugerido}</span>}
+          </div>
+          {!d.items.length && <p className="suave" style={{ margin: '10px 0' }}>Sin ejercicios todavía.</p>}
+          {d.items.map(it => (
+            <div className="ej" key={it.id}>
+              <div className="ej-top">
+                <div>
+                  <b>{it.ejercicio}</b>
+                  {it.video_url
+                    ? <div><a className="video" href={it.video_url} target="_blank" rel="noopener">Ver el video</a></div>
+                    : <div className="chico">Sin video</div>}
+                  {it.nota && <div className="chico">{it.nota}</div>}
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div className="series">{it.series}×{it.reps}</div>
+                  <button className="btn riesgo chico" style={{ marginTop: 6, padding: '5px 10px', fontSize: 12.5 }}
+                    onClick={() => quitar(it)}>Sacar</button>
+                </div>
+              </div>
+            </div>))}
+
+          <label style={{ marginTop: 14 }}>Buscar en tu banco
+            <input value={q} placeholder="Escribí el nombre..." autoComplete="off"
+              onChange={e => setBusq({ ...busq, [d.id]: e.target.value })} /></label>
+          {q &&
+            <div className="lista">
+              {hits.map(e =>
+                <button className="op" key={e.id}
+                  onClick={() => setForm({ diaId: d.id, ejercicio_id: e.id, titulo: e.nombre, series: '4', reps: '10', nota: '' })}>
+                  <b>{e.nombre}</b> <span className="chico">{e.grupo || ''}</span></button>)}
+              <button className="op" style={{ color: 'var(--verde)' }}
+                onClick={() => setForm({ diaId: d.id, ejercicio_id: null, nombreNuevo: q, titulo: q,
+                  series: '4', reps: '10', nota: '', grupo: '', video: '' })}>
+                <b>Crear "{q}"</b> y sumarlo al banco</button>
+            </div>}
+        </div>);
+    })}
+
+    <button className="btn linea" onClick={() => setNuevoDia({ nombre: 'Día ' + (r.dias.length + 1), dia_sugerido: '' })}>
+      Agregar otro día</button>
+
+    {form &&
+      <Modal titulo={form.titulo} sub="¿Cómo lo hace tu alumno?" cerrar={() => setForm(null)}>
+        {form.ejercicio_id === null && (<div>
+          <label>Link del video<input value={form.video} placeholder="Opcional, lo podés cargar después"
+            onChange={e => setForm({ ...form, video: e.target.value })} /></label>
+          <label>Grupo muscular<input value={form.grupo} placeholder="Opcional"
+            onChange={e => setForm({ ...form, grupo: e.target.value })} /></label>
+        </div>)}
+        <div className="dos">
+          <label>Series<input value={form.series} onChange={e => setForm({ ...form, series: e.target.value })} /></label>
+          <label>Repeticiones<input value={form.reps} onChange={e => setForm({ ...form, reps: e.target.value })} /></label>
+        </div>
+        <label>Nota para el alumno<input value={form.nota} placeholder="Opcional"
+          onChange={e => setForm({ ...form, nota: e.target.value })} /></label>
+        <button className="btn" onClick={guardarItem}>Agregar a la rutina</button>
+      </Modal>}
+
+    {nuevoDia &&
+      <Modal titulo="Nuevo día" cerrar={() => setNuevoDia(null)}>
+        <label>Nombre<input autoFocus value={nuevoDia.nombre}
+          onChange={e => setNuevoDia({ ...nuevoDia, nombre: e.target.value })} /></label>
+        <label>Día sugerido<input value={nuevoDia.dia_sugerido} placeholder="Lunes (opcional)"
+          onChange={e => setNuevoDia({ ...nuevoDia, dia_sugerido: e.target.value })} /></label>
+        <button className="btn" onClick={guardarDia}>Agregar día</button>
+      </Modal>}
+  </div>);
+}
+
+/* ---------- panel de administración ---------- */
+function Admin() {
+  const [cuentas, setCuentas] = useState([]);
+  const { avisar, confirmar } = usarAviso();
+  const cargar = useCallback(() => api('/admin/cuentas').then(setCuentas).catch(e => avisar(e.message, 'mal')), []);
+  useEffect(cargar, [cargar]);
+
+  async function cambiarPlan(c, plan) {
+    try { await api('/admin/cuentas/' + c.id, { method: 'PATCH', body: { plan } }); cargar(); avisar('Plan actualizado'); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+  async function borrar(c) {
+    if (!await confirmar('¿Eliminar la cuenta de ' + c.nombre + '?',
+      'Se borran sus alumnos, rutinas y ejercicios. No hay vuelta atrás.', 'Sí, eliminar')) return;
+    try { await api('/admin/cuentas/' + c.id, { method: 'DELETE' }); cargar(); avisar('Cuenta eliminada'); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  return (<div>
+    <h2>Cuentas del sistema</h2>
+    <p className="suave" style={{ marginBottom: 18 }}>
+      {cuentas.length} cuenta{cuentas.length === 1 ? '' : 's'} · desde acá activás, pausás o eliminás entrenadores.
+    </p>
+    {cuentas.map(c => (
+      <div className="card" key={c.id}>
+        <div className="row">
+          <div>
+            <h3>{c.nombre} {c.rol === 'admin' && <span className="globo">admin</span>}</h3>
+            <p className="suave">{c.email}</p>
+            <p className="chico">{c.alumnos} alumnos · {c.ejercicios} ejercicios · desde {fmt(c.creada)}</p>
+          </div>
+          <span className={'globo ' + (c.plan === 'activo' ? 'ok' : c.plan === 'pausado' ? 'aviso' : '')}>{c.plan}</span>
+        </div>
+        <div className="dos" style={{ marginTop: 12 }}>
+          <select value={c.plan} onChange={e => cambiarPlan(c, e.target.value)} style={{ marginTop: 0 }}>
+            <option value="prueba">En prueba</option>
+            <option value="activo">Activo (paga)</option>
+            <option value="pausado">Pausado</option>
+          </select>
+          {c.rol !== 'admin' && <button className="btn riesgo chico" onClick={() => borrar(c)}>Eliminar cuenta</button>}
+        </div>
+      </div>))}
+  </div>);
+}
+
+/* ---------- vista del alumno ---------- */
+function VistaAlumno({ token }) {
+  const [d, setD] = useState(null);
+  const [error, setError] = useState('');
+  const [peso, setPeso] = useState('');
+  const [nota, setNota] = useState('');
+  const [log, setLog] = useState({});
+  const { avisar } = usarAviso();
+
+  const cargar = useCallback(() => {
+    fetch('/api/alumno/' + token).then(r => r.json())
+      .then(x => x.error ? setError(x.error) : setD(x))
+      .catch(() => setError('No pudimos cargar tu rutina.'));
+  }, [token]);
+  useEffect(cargar, [cargar]);
+
+  async function anotar(exId) {
+    const v = log[exId] || {};
+    if (!v.kg || !v.reps) { avisar('Cargá el peso y las repeticiones', 'mal'); return; }
+    await fetch('/api/alumno/' + token + '/series', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ejercicio_id: exId, kg: v.kg, reps: v.reps })
+    });
+    setLog({ ...log, [exId]: {} }); avisar('¡Anotado! Bien ahí'); cargar();
+  }
+
+  async function guardarPeso() {
+    if (!peso) { avisar('Cargá tu peso', 'mal'); return; }
+    await fetch('/api/alumno/' + token + '/seguimiento', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ peso, nota })
+    });
+    setPeso(''); setNota(''); avisar('Seguimiento guardado'); cargar();
+  }
+
+  if (error) return <div className="wrap"><div className="vacio"><p>{error}</p></div></div>;
+  if (!d) return <div className="wrap"><p className="suave">Cargando...</p></div>;
+
+  return (<div>
+    <div className="topbar"><div className="brand"><h1>Plan</h1><span className="hola">tu rutina</span></div></div>
+    <div className="wrap">
+      <h2>Hola, {(d.nombre || '').split(' ')[0]}</h2>
+      {!d.rutina
+        ? <div className="vacio" style={{ marginTop: 16 }}><p>Tu profe todavía no cargó tu rutina.</p></div>
+        : (<div>
+          <p className="suave" style={{ marginBottom: 18 }}>{d.rutina.nombre} · semana {semanas(d.inicio) + 1}</p>
+          {d.rutina.dias.map((dia, i) => (
+            <div className="dia" key={dia.id}>
+              <div className="row">
+                <h3>{dia.nombre || 'Día ' + (i + 1)}</h3>
+                {dia.dia_sugerido && <span className="globo">{dia.dia_sugerido}</span>}
+              </div>
+              {dia.items.map(it => (
+                <div className="ej" key={it.id}>
+                  <div className="ej-top">
+                    <div>
+                      <b>{it.ejercicio}</b>
+                      {it.video_url && <div><a className="video" href={it.video_url} target="_blank" rel="noopener">Ver el video</a></div>}
+                      {it.nota && <div className="chico">{it.nota}</div>}
+                    </div>
+                    <div className="series">{it.series}×{it.reps}</div>
+                  </div>
+                  <div className="anotar">
+                    <input type="number" inputMode="decimal" placeholder="kg"
+                      value={(log[it.ejercicio_id] || {}).kg || ''}
+                      onChange={e => setLog({ ...log, [it.ejercicio_id]: { ...log[it.ejercicio_id], kg: e.target.value } })} />
+                    <input type="number" inputMode="numeric" placeholder="reps"
+                      value={(log[it.ejercicio_id] || {}).reps || ''}
+                      onChange={e => setLog({ ...log, [it.ejercicio_id]: { ...log[it.ejercicio_id], reps: e.target.value } })} />
+                    <button className="btn chico" onClick={() => anotar(it.ejercicio_id)}>Anotar</button>
+                  </div>
+                </div>))}
+            </div>))}
+        </div>)}
+
+      <div className="card">
+        <h3>Tu seguimiento</h3>
+        <p className="suave" style={{ marginBottom: 12 }}>Cargá tu peso cada tanto así tu profe ve cómo venís.</p>
+        <div className="dos">
+          <label>Peso corporal (kg)<input type="number" inputMode="decimal" value={peso} onChange={e => setPeso(e.target.value)} /></label>
+          <label>¿Cómo te sentiste?<input value={nota} onChange={e => setNota(e.target.value)} placeholder="Opcional" /></label>
+        </div>
+        <button className="btn suave" onClick={guardarPeso}>Guardar</button>
+        {d.seguimiento.map(s => <p className="suave" key={s.id} style={{ marginTop: 8 }}>{fmt(s.fecha)} · {s.peso} kg</p>)}
+      </div>
+    </div>
+  </div>);
+}
+
+/* ---------- app ---------- */
+function App() {
+  const tokenAlumno = new URLSearchParams(location.search).get('alumno');
+  const [entrado, setEntrado] = useState(!!sesion);
+  const [perfil, setPerfil] = useState(null);
+  const [tab, setTab] = useState('alumnos');
+  const [clientes, setClientes] = useState([]);
+  const [ejercicios, setEjercicios] = useState([]);
+  const [clienteId, setClienteId] = useState(null);
+  const [rutinaId, setRutinaId] = useState(null);
+  const { avisar } = usarAviso();
+
+  const recargarClientes = useCallback(() =>
+    api('/clientes').then(setClientes).catch(e => avisar(e.message, 'mal')), []);
+  const recargarEjercicios = useCallback(() =>
+    api('/ejercicios').then(setEjercicios).catch(e => avisar(e.message, 'mal')), []);
+
+  useEffect(() => {
+    if (!entrado || tokenAlumno) return;
+    api('/perfil').then(setPerfil).catch(() => {});
+    recargarClientes(); recargarEjercicios();
+  }, [entrado]);
+
+  if (tokenAlumno) return <VistaAlumno token={tokenAlumno} />;
+  if (!entrado) return <Entrar onEntrar={() => setEntrado(true)} />;
+
+  const esAdmin = perfil && perfil.rol === 'admin';
+  const tabs = [['alumnos', 'Alumnos'], ['ejercicios', 'Ejercicios']];
+  if (esAdmin) tabs.push(['admin', 'Cuentas']);
+
+  let contenido;
+  if (tab === 'admin' && esAdmin) contenido = <Admin />;
+  else if (tab === 'ejercicios') contenido = <Ejercicios ejercicios={ejercicios} recargar={recargarEjercicios} />;
+  else if (rutinaId) contenido = <Editor id={rutinaId} volver={() => setRutinaId(null)}
+    ejercicios={ejercicios} recargarEjercicios={recargarEjercicios} />;
+  else if (clienteId) contenido = <Ficha id={clienteId} clientes={clientes}
+    volver={() => { setClienteId(null); recargarClientes(); }} abrirRutina={setRutinaId} />;
+  else contenido = <Alumnos clientes={clientes} recargar={recargarClientes} abrir={setClienteId} />;
+
+  return (<div>
+    <div className="topbar">
+      <div className="brand">
+        <h1>Plan</h1>
+        <span className="hola">{perfil ? perfil.nombre : ''}</span>
+        <button onClick={() => { localStorage.removeItem(CLAVE); sesion = null; location.reload(); }}>Salir</button>
+      </div>
+      <div className="tabs">
+        {tabs.map(([k, t]) => (
+          <button key={k} className={'tab ' + (tab === k ? 'on' : '')}
+            onClick={() => { setTab(k); setClienteId(null); setRutinaId(null); }}>{t}</button>))}
+      </div>
+    </div>
+    <div className="wrap">{contenido}</div>
+  </div>);
+}
+
+ReactDOM.createRoot(document.getElementById('root'))
+  .render(<ProveedorAviso><App /></ProveedorAviso>);
+</script>
+</body>
+</html>
