@@ -210,6 +210,15 @@
     border-radius:0;background:none;color:var(--gris);width:auto;
   }
   .acciones{display:flex;flex-wrap:wrap;gap:6px}
+  .uso{margin-bottom:12px}
+  .uso .row{margin-bottom:5px;font-size:14.5px}
+  .uso b{font-family:'Chivo',sans-serif;font-variant-numeric:tabular-nums}
+  .beneficios{margin:10px 0 16px;padding-left:18px}
+  .beneficios li{margin-bottom:7px;font-size:15px}
+  .beneficios b{font-family:'Chivo',sans-serif;font-weight:700}
+  .respuesta{margin-top:12px;border-left:2px solid var(--cobalto);padding-left:12px}
+  .respuesta b{font-family:'Chivo',sans-serif;font-size:13.5px;color:var(--cobalto)}
+  .respuesta p{margin-top:2px}
   .card.turno{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap}
   .card.turno .quien{flex:1 1 140px;min-width:0}
   .card.turno .acciones{flex:0 0 auto}
@@ -524,9 +533,10 @@ function Grupos({ grupos, recargar, ejercicios, cerrar }) {
 }
 
 /* ---------- banco de ejercicios ---------- */
-function Ejercicios({ ejercicios, grupos, recargar }) {
+function Ejercicios({ ejercicios, grupos, recargar, irAAyuda }) {
   const [form, setForm] = useState(null);
   const [verGrupos, setVerGrupos] = useState(false);
+  const [tope, setTope] = useState(null);
   const { avisar, confirmar } = usarAviso();
 
   async function guardar() {
@@ -537,7 +547,9 @@ function Ejercicios({ ejercicios, grupos, recargar }) {
         avisar(r.ya_existia ? 'Ese ejercicio ya estaba en tu banco' : 'Ejercicio guardado');
       }
       setForm(null); await recargar();
-    } catch (e) { avisar(e.message, 'mal'); }
+    } catch (e) {
+      if (e.status === 402) { setForm(null); setTope(e.message); } else avisar(e.message, 'mal');
+    }
   }
 
   async function borrar(ej) {
@@ -619,6 +631,7 @@ function Ejercicios({ ejercicios, grupos, recargar }) {
       </Modal>}
 
     {verGrupos && <Grupos grupos={grupos} recargar={recargar} ejercicios={ejercicios} cerrar={() => setVerGrupos(false)} />}
+    {tope && <Tope texto={tope} cerrar={() => setTope(null)} irAAyuda={irAAyuda} />}
   </div>);
 }
 
@@ -673,9 +686,10 @@ function FormAlumno({ inicial, onGuardar, cerrar, conTurnos }) {
     </Modal>);
 }
 
-function Alumnos({ clientes, recargar, abrir, recargarTurnos }) {
+function Alumnos({ clientes, recargar, abrir, recargarTurnos, irAAyuda }) {
   const [form, setForm] = useState(null);
   const [importar, setImportar] = useState(false);
+  const [tope, setTope] = useState(null);
   const { avisar } = usarAviso();
 
   async function crear(f) {
@@ -683,7 +697,9 @@ function Alumnos({ clientes, recargar, abrir, recargarTurnos }) {
       await api('/clientes', { method: 'POST', body: f });
       setForm(null); await recargar(); await recargarTurnos();
       avisar(f.turnos && f.turnos.length ? 'Alumno agregado y turnos cargados en la agenda' : 'Alumno agregado');
-    } catch (e) { avisar(e.message, 'mal'); }
+    } catch (e) {
+      if (e.status === 402) { setForm(null); setTope(e.message); } else avisar(e.message, 'mal');
+    }
   }
 
   const porRenovar = clientes.filter(c => { const d = diasRestantes(c.inicio); return d !== null && d <= 7; });
@@ -722,13 +738,24 @@ function Alumnos({ clientes, recargar, abrir, recargarTurnos }) {
       </div>))}
 
     {form && <FormAlumno inicial={form} conTurnos onGuardar={crear} cerrar={() => setForm(null)} />}
-    {importar && <ImportarTodo cerrar={() => setImportar(false)}
+    {importar && <ImportarTodo cerrar={() => setImportar(false)} irAAyuda={irAAyuda}
       alTerminar={async () => { await recargar(); await recargarTurnos(); }} />}
+    {tope && <Tope texto={tope} cerrar={() => setTope(null)} irAAyuda={irAAyuda} />}
   </div>);
 }
 
+/* Aviso de tope del plan: explica y ofrece el paso siguiente. */
+function Tope({ texto, cerrar, irAAyuda }) {
+  return (
+    <Modal titulo="Llegaste al tope de tu plan" cerrar={cerrar}>
+      <p className="suave" style={{ marginBottom: 18 }}>{texto}</p>
+      <button className="btn" onClick={() => { cerrar(); irAAyuda && irAAyuda(); }}>Ver mi plan</button>
+      <button className="btn linea" style={{ marginTop: 10 }} onClick={cerrar}>Ahora no</button>
+    </Modal>);
+}
+
 /* ---------- importar datos generales ---------- */
-function ImportarTodo({ cerrar, alTerminar }) {
+function ImportarTodo({ cerrar, alTerminar, irAAyuda }) {
   const [datos, setDatos] = useState(null);
   const [subiendo, setSubiendo] = useState(false);
   const [resultado, setResultado] = useState(null);
@@ -822,11 +849,18 @@ function ImportarTodo({ cerrar, alTerminar }) {
     lector.readAsArrayBuffer(archivo);
   }
 
+  const [tope, setTope] = useState(null);
+
   async function importar() {
     setSubiendo(true);
     try { setResultado(await api('/importar', { method: 'POST', body: datos })); }
-    catch (e) { avisar(e.message, 'mal'); setSubiendo(false); }
+    catch (e) {
+      if (e.status === 402) setTope(e.message); else avisar(e.message, 'mal');
+      setSubiendo(false);
+    }
   }
+
+  if (tope) return <Tope texto={tope} cerrar={cerrar} irAAyuda={irAAyuda} />;
 
   if (resultado) return (
     <Modal titulo="Listo, importamos todo" cerrar={() => { cerrar(); alTerminar && alTerminar(); }}>
@@ -885,7 +919,7 @@ function ImportarTodo({ cerrar, alTerminar }) {
 }
 
 /* ---------- ficha del alumno ---------- */
-function Ficha({ id, volver, abrirRutina, clientes, plantillas, recargarPlantillas, recargarTurnos }) {
+function Ficha({ id, volver, abrirRutina, clientes, plantillas, recargarPlantillas, recargarTurnos, irAAyuda }) {
   const [c, setC] = useState(null);
   const [turnos, setTurnos] = useState([]);
   const [nueva, setNueva] = useState(null);
@@ -893,6 +927,7 @@ function Ficha({ id, volver, abrirRutina, clientes, plantillas, recargarPlantill
   const [usarPlantilla, setUsarPlantilla] = useState(false);
   const [editar, setEditar] = useState(null);
   const [turnoForm, setTurnoForm] = useState(null);
+  const [tope, setTope] = useState(null);
   const { avisar, confirmar } = usarAviso();
 
   const cargar = useCallback(async () => {
@@ -935,7 +970,9 @@ function Ficha({ id, volver, abrirRutina, clientes, plantillas, recargarPlantill
     try {
       await api('/rutinas/' + rutinaId + '/plantilla', { method: 'POST', body: { nombre: nombreRutina } });
       await recargarPlantillas(); avisar('Guardada como plantilla');
-    } catch (e) { avisar(e.message, 'mal'); }
+    } catch (e) {
+      if (e.status === 402) setTope(e.message); else avisar(e.message, 'mal');
+    }
   }
 
   async function borrarRutina(r) {
@@ -1114,6 +1151,8 @@ function Ficha({ id, volver, abrirRutina, clientes, plantillas, recargarPlantill
           {clientes.map(x => <button className="op" key={x.id} onClick={() => copiarA(x.id)}>{x.nombre}</button>)}
         </div>
       </Modal>}
+
+    {tope && <Tope texto={tope} cerrar={() => setTope(null)} irAAyuda={irAAyuda} />}
 
     {usarPlantilla &&
       <Modal titulo="Tus plantillas" sub="Se crea una rutina nueva para este alumno." cerrar={() => setUsarPlantilla(false)}>
@@ -1597,10 +1636,11 @@ function EditorPlantilla({ id, volver, ejercicios, grupos, recargarEjercicios, r
   </div>);
 }
 
-function Plantillas({ plantillas, recargar, clientes, ejercicios, grupos, recargarEjercicios }) {
+function Plantillas({ plantillas, recargar, clientes, ejercicios, grupos, recargarEjercicios, irAAyuda }) {
   const [editando, setEditando] = useState(null);
   const [nueva, setNueva] = useState(null);
   const [usar, setUsar] = useState(null);
+  const [tope, setTope] = useState(null);
   const { avisar, confirmar } = usarAviso();
 
   if (editando) return <EditorPlantilla id={editando} volver={() => setEditando(null)}
@@ -1612,7 +1652,9 @@ function Plantillas({ plantillas, recargar, clientes, ejercicios, grupos, recarg
       for (let i = 0; i < nueva.cantidad; i++) dias.push({ nombre: `Día ${i + 1}` });
       const p = await api('/plantillas', { method: 'POST', body: { nombre: nueva.nombre, dias } });
       setNueva(null); await recargar(); avisar('Plantilla creada'); setEditando(p.id);
-    } catch (e) { avisar(e.message, 'mal'); }
+    } catch (e) {
+      if (e.status === 402) { setNueva(null); setTope(e.message); } else avisar(e.message, 'mal');
+    }
   }
   async function aplicar(clienteId) {
     try { await api('/plantillas/' + usar + '/usar', { method: 'POST', body: { cliente_id: clienteId } });
@@ -1665,6 +1707,132 @@ function Plantillas({ plantillas, recargar, clientes, ejercicios, grupos, recarg
           {clientes.map(c => <button className="op" key={c.id} onClick={() => aplicar(c.id)}>{c.nombre}</button>)}
         </div>
       </Modal>}
+
+    {tope && <Tope texto={tope} cerrar={() => setTope(null)} irAAyuda={irAAyuda} />}
+  </div>);
+}
+
+/* ---------- cuenta pausada ---------- */
+function Pausada({ perfil, salir }) {
+  const [texto, setTexto] = useState('');
+  const [enviado, setEnviado] = useState(false);
+  const { avisar } = usarAviso();
+
+  async function enviar() {
+    try {
+      await api('/mensajes', { method: 'POST', body: { tipo: 'pregunta', texto } });
+      setEnviado(true); setTexto('');
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  return (
+    <div className="centro">
+      <div className="portada"><span className="cifra">||</span><h1>Cuenta pausada</h1>
+        <p>Tus datos están guardados. Escribinos y la reactivamos.</p></div>
+      <div className="card">
+        {enviado
+          ? <p className="suave">Recibimos tu mensaje. Te contestamos al mail {perfil.email}.</p>
+          : (<div>
+              <label>¿Qué necesitás?
+                <textarea rows="4" value={texto} onChange={e => setTexto(e.target.value)}
+                  placeholder="Contanos y lo resolvemos" /></label>
+              <button className="btn" onClick={enviar} disabled={!texto.trim()}>Enviar mensaje</button>
+            </div>)}
+        <button className="btn linea" style={{ marginTop: 10 }} onClick={salir}>Salir</button>
+      </div>
+    </div>);
+}
+
+/* ---------- ayuda: plan, uso y consultas ---------- */
+function Ayuda({ perfil, recargarPerfil }) {
+  const [mensajes, setMensajes] = useState([]);
+  const [tipo, setTipo] = useState('pregunta');
+  const [texto, setTexto] = useState('');
+  const { avisar } = usarAviso();
+
+  const cargar = useCallback(async () => {
+    try { setMensajes(await api('/mensajes')); } catch (e) { avisar(e.message, 'mal'); }
+  }, [avisar]);
+  useEffect(() => { cargar(); }, [cargar]);
+
+  async function enviar() {
+    try {
+      await api('/mensajes', { method: 'POST', body: { tipo, texto } });
+      setTexto(''); await cargar();
+      avisar('Mensaje enviado. Te respondemos por acá.');
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  const lim = perfil.limites || {}, uso = perfil.uso || {};
+  const gratis = perfil.plan === 'prueba';
+  const barra = (usado, tope) => Math.min(100, tope ? (usado / tope) * 100 : 0);
+  const fila = (etiqueta, usado, tope) => (
+    <div className="uso" key={etiqueta}>
+      <div className="row">
+        <span>{etiqueta}</span>
+        <b>{usado} de {tope}</b>
+      </div>
+      <div className="cinta" style={{ height: 8 }}>
+        <i className="lleno" style={{ width: Math.max(barra(usado, tope), 2) + '%' }} />
+      </div>
+    </div>);
+
+  return (<div>
+    <h2>Tu plan</h2>
+    <div className="card" style={{ marginTop: 12 }}>
+      <div className="row" style={{ marginBottom: 14 }}>
+        <h3>Plan {perfil.plan_nombre}</h3>
+        <span className={'globo ' + (gratis ? '' : 'ok')}>{gratis ? 'gratis' : 'activo'}</span>
+      </div>
+      {fila('Alumnos', uso.alumnos || 0, lim.alumnos)}
+      {fila('Ejercicios', uso.ejercicios || 0, lim.ejercicios)}
+      {fila('Plantillas', uso.plantillas || 0, lim.plantillas)}
+    </div>
+
+    {gratis &&
+      <div className="card">
+        <h3>Con el plan completo</h3>
+        <ul className="beneficios">
+          <li><b>Hasta 150 alumnos</b>, en vez de 3</li>
+          <li><b>Carga desde Excel</b>: pasás tu planilla entera de una vez, con alumnos, rutinas y horarios</li>
+          <li><b>25 plantillas</b> de rutina para reutilizar, en vez de una</li>
+          <li><b>600 ejercicios</b> en tu banco, en vez de 25</li>
+        </ul>
+        <button className="btn" onClick={() => { setTipo('pregunta');
+          setTexto('Quiero pasar al plan completo.');
+          document.getElementById('consulta').scrollIntoView({ behavior: 'smooth' }); }}>
+          Quiero pasar al plan completo</button>
+      </div>}
+
+    <h2 style={{ marginTop: 26 }}>Consultas y sugerencias</h2>
+    <p className="suave" style={{ marginBottom: 14 }}>
+      Contanos qué te falta o qué no funciona. Te respondemos por acá.
+    </p>
+
+    <div className="card" id="consulta">
+      <label>¿De qué se trata?
+        <select value={tipo} onChange={e => setTipo(e.target.value)}>
+          <option value="pregunta">Tengo una duda</option>
+          <option value="idea">Se me ocurre algo</option>
+          <option value="problema">Algo no funciona</option>
+        </select></label>
+      <label>Contanos
+        <textarea rows="4" value={texto} onChange={e => setTexto(e.target.value)}
+          placeholder="Escribí con confianza, lo lee una persona" /></label>
+      <button className="btn" onClick={enviar} disabled={!texto.trim()}>Enviar</button>
+    </div>
+
+    {mensajes.map(m => (
+      <div className="card" key={m.id}>
+        <div className="row" style={{ marginBottom: 6 }}>
+          <span className={'globo ' + (m.estado === 'abierto' ? 'aviso' : 'ok')}>
+            {m.estado === 'abierto' ? 'esperando respuesta' : 'respondida'}</span>
+          <span className="chico">{fmt((m.creado || '').slice(0, 10))}</span>
+        </div>
+        <p>{m.texto}</p>
+        {m.respuesta &&
+          <div className="respuesta"><b>Respuesta</b><p>{m.respuesta}</p></div>}
+      </div>))}
   </div>);
 }
 
@@ -1715,6 +1883,69 @@ function Admin() {
           {c.rol !== 'admin' && <button className="btn riesgo chico" onClick={() => borrar(c)}>Eliminar cuenta</button>}
         </div>
       </div>))}
+  </div>);
+}
+
+/* ---------- consultas recibidas (admin) ---------- */
+function Consultas() {
+  const [lista, setLista] = useState(null);
+  const [respondiendo, setRespondiendo] = useState(null);
+  const { avisar } = usarAviso();
+
+  const cargar = useCallback(async () => {
+    try { setLista(await api('/admin/mensajes')); } catch (e) { avisar(e.message, 'mal'); setLista([]); }
+  }, [avisar]);
+  useEffect(() => { cargar(); }, [cargar]);
+  if (lista === null) return <p className="suave">Cargando...</p>;
+
+  async function responder() {
+    try {
+      await api('/admin/mensajes/' + respondiendo.id, { method: 'PATCH',
+        body: { respuesta: respondiendo.respuesta, estado: 'respondido' } });
+      setRespondiendo(null); await cargar(); avisar('Respuesta enviada');
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+  async function cerrar(m) {
+    try { await api('/admin/mensajes/' + m.id, { method: 'PATCH', body: { estado: 'cerrado' } });
+      await cargar(); } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  const etiqueta = { pregunta: 'Duda', idea: 'Idea', problema: 'Problema' };
+  const abiertas = lista.filter(m => m.estado === 'abierto');
+
+  return (<div>
+    <h2>Consultas</h2>
+    <p className="suave" style={{ marginBottom: 18 }}>
+      {abiertas.length ? abiertas.length + ' sin responder' : 'No hay consultas sin responder'}
+    </p>
+    {!lista.length && <div className="vacio"><p>Todavía no te escribió nadie.</p></div>}
+    {lista.map(m => (
+      <div className="card" key={m.id}>
+        <div className="row" style={{ marginBottom: 6 }}>
+          <div>
+            <b>{m.entrenador}</b>
+            <div className="chico">{m.email}, plan {m.plan}</div>
+          </div>
+          <span className={'globo ' + (m.estado === 'abierto' ? 'aviso' : 'ok')}>
+            {etiqueta[m.tipo] || m.tipo}</span>
+        </div>
+        <p>{m.texto}</p>
+        {m.respuesta && <div className="respuesta"><b>Respondiste</b><p>{m.respuesta}</p></div>}
+        <div className="acciones" style={{ marginTop: 12 }}>
+          <button className="btn linea chico"
+            onClick={() => setRespondiendo({ id: m.id, respuesta: m.respuesta || '', texto: m.texto })}>
+            {m.respuesta ? 'Editar respuesta' : 'Responder'}</button>
+          {m.estado !== 'cerrado' && <button className="btn linea chico" onClick={() => cerrar(m)}>Cerrar</button>}
+        </div>
+      </div>))}
+
+    {respondiendo &&
+      <Modal titulo="Responder" sub={respondiendo.texto} cerrar={() => setRespondiendo(null)}>
+        <label>Tu respuesta
+          <textarea rows="5" autoFocus value={respondiendo.respuesta}
+            onChange={e => setRespondiendo({ ...respondiendo, respuesta: e.target.value })} /></label>
+        <button className="btn" onClick={responder} disabled={!respondiendo.respuesta.trim()}>Enviar respuesta</button>
+      </Modal>}
   </div>);
 }
 
@@ -1864,18 +2095,26 @@ function App() {
   const [versionTurnos, setVersionTurnos] = useState(0);
   const recargarTurnos = useCallback(async () => setVersionTurnos(v => v + 1), []);
 
+  const recargarPerfil = useCallback(async () => {
+    try { setPerfil(await api('/perfil')); } catch (e) { /* la sesión ya se maneja en api() */ }
+  }, []);
+
   useEffect(() => {
     if (!entrado || tokenAlumno) return;
-    api('/perfil').then(setPerfil).catch(() => {});
+    recargarPerfil();
     recargarClientes(); recargarEjercicios(); recargarPlantillas();
-  }, [entrado, tokenAlumno, recargarClientes, recargarEjercicios, recargarPlantillas]);
+  }, [entrado, tokenAlumno, recargarPerfil, recargarClientes, recargarEjercicios, recargarPlantillas]);
+
+  function salir() { localStorage.removeItem(CLAVE); sesion = null; location.href = '/'; }
 
   if (tokenAlumno) return <VistaAlumno token={tokenAlumno} />;
   if (!entrado) return <Entrar onEntrar={() => setEntrado(true)} />;
+  if (perfil && perfil.plan === 'pausado') return <Pausada perfil={perfil} salir={salir} />;
 
   const esAdmin = perfil && perfil.rol === 'admin';
-  const tabs = [['alumnos', 'Alumnos'], ['agenda', 'Agenda'], ['ejercicios', 'Ejercicios'], ['plantillas', 'Plantillas']];
-  if (esAdmin) tabs.push(['admin', 'Cuentas']);
+  const tabs = [['alumnos', 'Alumnos'], ['agenda', 'Agenda'], ['ejercicios', 'Ejercicios'],
+                ['plantillas', 'Plantillas'], ['ayuda', 'Ayuda']];
+  if (esAdmin) tabs.push(['admin', 'Cuentas'], ['consultas', 'Consultas']);
 
   // Al cambiar de pestaña se refrescan los datos que esa vista necesita.
   function irA(k) {
@@ -1883,33 +2122,39 @@ function App() {
     if (k === 'alumnos') recargarClientes();
     if (k === 'ejercicios') recargarEjercicios();
     if (k === 'plantillas') recargarPlantillas();
+    if (k === 'ayuda') recargarPerfil();
   }
 
   let contenido;
-  if (tab === 'admin' && esAdmin) contenido = <Admin />;
+  if (tab === 'consultas' && esAdmin) contenido = <Consultas />;
+  else if (tab === 'ayuda') contenido = perfil
+    ? <Ayuda perfil={perfil} recargarPerfil={recargarPerfil} /> : <p className="suave">Cargando...</p>;
+  else if (tab === 'admin' && esAdmin) contenido = <Admin />;
   else if (tab === 'agenda') contenido =
     <Agenda key={versionTurnos} clientes={clientes} recargarTurnos={recargarTurnos} />;
   else if (tab === 'plantillas') contenido =
     <Plantillas plantillas={plantillas} recargar={recargarPlantillas} clientes={clientes}
-      ejercicios={ejercicios} grupos={grupos} recargarEjercicios={recargarEjercicios} />;
+      ejercicios={ejercicios} grupos={grupos} recargarEjercicios={recargarEjercicios}
+      irAAyuda={() => irA('ayuda')} />;
   else if (tab === 'ejercicios') contenido =
-    <Ejercicios ejercicios={ejercicios} grupos={grupos} recargar={recargarEjercicios} />;
+    <Ejercicios ejercicios={ejercicios} grupos={grupos} recargar={recargarEjercicios}
+      irAAyuda={() => irA('ayuda')} />;
   else if (rutinaId) contenido =
     <Editor id={rutinaId} volver={() => setRutinaId(null)} ejercicios={ejercicios} grupos={grupos}
       recargarEjercicios={recargarEjercicios} />;
   else if (clienteId) contenido =
     <Ficha id={clienteId} clientes={clientes} plantillas={plantillas} recargarPlantillas={recargarPlantillas}
-      recargarTurnos={recargarTurnos} volver={() => { setClienteId(null); recargarClientes(); }}
-      abrirRutina={setRutinaId} />;
+      recargarTurnos={recargarTurnos} irAAyuda={() => irA('ayuda')}
+      volver={() => { setClienteId(null); recargarClientes(); }} abrirRutina={setRutinaId} />;
   else contenido = <Alumnos clientes={clientes} recargar={recargarClientes} abrir={setClienteId}
-    recargarTurnos={recargarTurnos} />;
+    recargarTurnos={recargarTurnos} irAAyuda={() => irA('ayuda')} />;
 
   return (<div>
     <div className="topbar">
       <div className="brand">
         <h1>AppTrainner</h1>
         <span className="hola">{perfil ? perfil.nombre : ''}</span>
-        <button onClick={() => { localStorage.removeItem(CLAVE); sesion = null; location.href = '/'; }}>Salir</button>
+        <button onClick={salir}>Salir</button>
       </div>
       <div className="tabs">
         {tabs.map(([k, t]) => (
