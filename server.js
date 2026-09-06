@@ -84,6 +84,11 @@ const TABLAS = [
      id TEXT PRIMARY KEY, cuenta_id TEXT NOT NULL, dia_id TEXT NOT NULL,
      ejercicio_id TEXT NOT NULL, orden INTEGER NOT NULL DEFAULT 0,
      series TEXT, reps TEXT, nota TEXT)`,
+  // Consultas y sugerencias que los entrenadores mandan desde la app.
+  `CREATE TABLE IF NOT EXISTS mensajes (
+     id TEXT PRIMARY KEY, cuenta_id TEXT NOT NULL, tipo TEXT NOT NULL, texto TEXT NOT NULL,
+     estado TEXT NOT NULL DEFAULT 'abierto', respuesta TEXT, creado TEXT NOT NULL, respondido TEXT)`,
+  `CREATE INDEX IF NOT EXISTS ix_mensajes_cuenta ON mensajes(cuenta_id)`,
   `CREATE INDEX IF NOT EXISTS ix_clientes_cuenta ON clientes(cuenta_id)`,
   `CREATE INDEX IF NOT EXISTS ix_clientes_token ON clientes(token)`,
   `CREATE INDEX IF NOT EXISTS ix_ejercicios_cuenta ON ejercicios(cuenta_id)`,
@@ -129,6 +134,65 @@ async function prepararBase() {
         args: [crypto.randomBytes(9).toString('hex'), g.cuenta_id, String(g.grupo).trim()] });
   }
   console.log('Base lista.');
+}
+
+/* ------------------------------------------------------------------
+   PLANES
+   'prueba'  = plan gratis, alcanza para trabajar de verdad con pocos alumnos
+   'activo'  = plan pago
+   'pausado' = sin acceso (dejó de pagar o lo pausamos nosotros)
+------------------------------------------------------------------- */
+const PLANES = {
+  prueba: {
+    nombre: 'Gratis',
+    alumnos: 3, ejercicios: 25, plantillas: 1,
+    importar: false, exportar: false
+  },
+  activo: {
+    nombre: 'Completo',
+    alumnos: 150, ejercicios: 600, plantillas: 25,
+    importar: true, exportar: true
+  },
+  pausado: {
+    nombre: 'Pausado',
+    alumnos: 0, ejercicios: 0, plantillas: 0,
+    importar: false, exportar: false
+  }
+};
+const limites = plan => PLANES[plan] || PLANES.prueba;
+
+// Cuántas cosas tiene cargadas la cuenta, para mostrar el uso y frenar a tiempo.
+async function usoDe(cuentaId) {
+  const uno = async sql => Number((await data.q(sql, [cuentaId]))[0].n);
+  return {
+    alumnos: await uno('SELECT COUNT(*) AS n FROM clientes WHERE cuenta_id = ? AND activo = 1'),
+    ejercicios: await uno('SELECT COUNT(*) AS n FROM ejercicios WHERE cuenta_id = ?'),
+    plantillas: await uno('SELECT COUNT(*) AS n FROM plantillas WHERE cuenta_id = ?')
+  };
+}
+
+// Devuelve un mensaje si la cuenta ya llegó al tope de ese recurso.
+async function topeAlcanzado(cuenta, recurso, sumar = 1) {
+  const lim = limites(cuenta.plan);
+  const uso = await usoDe(cuenta.id);
+  if (uso[recurso] + sumar <= lim[recurso]) return null;
+  const nombres = { alumnos: 'alumnos', ejercicios: 'ejercicios', plantillas: 'plantillas' };
+  return cuenta.plan === 'prueba'
+    ? `El plan gratis llega hasta ${lim[recurso]} ${nombres[recurso]}. Pasá al plan completo para seguir sumando.`
+    : `Llegaste al tope de ${lim[recurso]} ${nombres[recurso]} de tu plan. Escribinos y lo ampliamos.`;
+}
+
+/* Un link de video tiene que ser un link, no código.
+   Sin esto, alguien podría guardar "javascript:..." y ejecutarlo al tocarlo. */
+function linkSeguro(url) {
+  const t = String(url || '').trim();
+  if (!t) return null;
+  const conEsquema = /^https?:\/\//i.test(t) ? t : 'https://' + t;
+  let u;
+  try { u = new URL(conEsquema); } catch { return { invalido: true }; }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') return { invalido: true };
+  if (conEsquema.length > 2000) return { invalido: true };
+  return { url: u.href };
 }
 
 const SECRET = process.env.JWT_SECRET;
@@ -230,17 +294,23 @@ const data = {
     const limpio = String(nombre || '').trim();
     const existente = await data.ejercicioPorNombre(cuentaId, limpio);
     if (existente) return Object.assign({}, existente, { ya_existia: true });
+    const link = linkSeguro(video_url);
+    if (link && link.invalido) return { linkInvalido: true };
     const id = uid();
     const g = await data.grupoExistente(cuentaId, grupo);
+    const v = link ? link.url : null;
     await data.run('INSERT INTO ejercicios (id, cuenta_id, nombre, grupo, video_url) VALUES (?,?,?,?,?)',
-      [id, cuentaId, limpio, g, video_url || null]);
-    return { id, cuenta_id: cuentaId, nombre: limpio, grupo: g, video_url: video_url || null };
+      [id, cuentaId, limpio, g, v]);
+    return { id, cuenta_id: cuentaId, nombre: limpio, grupo: g, video_url: v };
   },
 
   async editarEjercicio(cuentaId, id, { nombre, grupo, video_url }) {
+    const link = linkSeguro(video_url);
+    if (link && link.invalido) return { linkInvalido: true };
     const g = await data.grupoExistente(cuentaId, grupo);
     await data.run('UPDATE ejercicios SET nombre = ?, grupo = ?, video_url = ? WHERE id = ? AND cuenta_id = ?',
-      [String(nombre).trim(), g, video_url || null, id, cuentaId]);
+      [String(nombre).trim(), g, link ? link.url : null, id, cuentaId]);
+    return { ok: true };
   },
 
   usosDeEjercicio: async (cuentaId, id) => Number((await data.q(
@@ -488,9 +558,11 @@ const data = {
       if (ya) {
         res.ejerciciosExistentes++;
         // completamos lo que falte sin borrar lo que ya había
-        if ((!ya.video_url && e.video) || (!ya.grupo && e.grupo))
-          await data.editarEjercicio(cuentaId, ya.id, {
+        if ((!ya.video_url && e.video) || (!ya.grupo && e.grupo)) {
+          const r = await data.editarEjercicio(cuentaId, ya.id, {
             nombre: ya.nombre, grupo: ya.grupo || e.grupo, video_url: ya.video_url || e.video });
+          if (r && r.linkInvalido) res.avisos.push(`El link de "${nombre}" no es válido y quedó sin cargar.`);
+        }
       } else {
         await data.crearEjercicio(cuentaId, { nombre, grupo: e.grupo, video_url: e.video });
         res.ejercicios++;
@@ -782,6 +854,30 @@ const data = {
     data.q(`SELECT * FROM seguimiento WHERE cuenta_id = ? AND cliente_id = ?
              ORDER BY fecha DESC LIMIT 60`, [cuentaId, clienteId]),
 
+  /* --- consultas y sugerencias --- */
+  crearMensaje: async (cuentaId, { tipo, texto }) => {
+    const id = uid();
+    await data.run('INSERT INTO mensajes (id, cuenta_id, tipo, texto, creado) VALUES (?,?,?,?,?)',
+      [id, cuentaId, tipo, String(texto).trim(), ahora()]);
+    return { id };
+  },
+
+  misMensajes: cuentaId =>
+    data.q('SELECT * FROM mensajes WHERE cuenta_id = ? ORDER BY creado DESC LIMIT 50', [cuentaId]),
+
+  todosLosMensajes: () =>
+    data.q(`SELECT m.*, c.nombre AS entrenador, c.email, c.plan
+              FROM mensajes m JOIN cuentas c ON c.id = m.cuenta_id
+             ORDER BY (m.estado = 'abierto') DESC, m.creado DESC LIMIT 200`),
+
+  async responderMensaje(id, { respuesta, estado }) {
+    const m = (await data.q('SELECT id FROM mensajes WHERE id = ?', [id]))[0];
+    if (!m) return false;
+    await data.run('UPDATE mensajes SET respuesta = ?, estado = ?, respondido = ? WHERE id = ?',
+      [respuesta || null, estado || 'respondido', ahora(), id]);
+    return true;
+  },
+
   clientePorToken: async token =>
     (await data.q('SELECT * FROM clientes WHERE token = ? AND activo = 1', [token]))[0]
 };
@@ -807,12 +903,28 @@ setInterval(() => {
   for (const [k, v] of intentos) if (v.hasta < t) intentos.delete(k);
 }, 10 * 60000).unref?.();
 
-function auth(req, res, next) {
+// Rutas que una cuenta pausada sigue pudiendo usar: ver su estado y escribirnos.
+const PERMITIDO_PAUSADO = ['/api/perfil', '/api/mensajes', '/api/cambiar-clave'];
+
+async function auth(req, res, next) {
   const h = req.headers.authorization || '';
   const token = h.startsWith('Bearer ') ? h.slice(7) : null;
   if (!token) return res.status(401).json({ error: 'Falta iniciar sesión.' });
-  try { req.cuentaId = jwt.verify(token, SECRET).cuentaId; next(); }
-  catch { res.status(401).json({ error: 'La sesión venció. Volvé a entrar.' }); }
+  let cuentaId;
+  try { cuentaId = jwt.verify(token, SECRET).cuentaId; }
+  catch { return res.status(401).json({ error: 'La sesión venció. Volvé a entrar.' }); }
+
+  const cuenta = await data.cuenta(cuentaId);
+  if (!cuenta) return res.status(401).json({ error: 'Esta cuenta ya no existe.' });
+
+  // Una cuenta pausada no puede leer ni escribir nada del sistema.
+  if (cuenta.plan === 'pausado' && !PERMITIDO_PAUSADO.includes(req.path))
+    return res.status(403).json({
+      error: 'Tu cuenta está pausada. Escribinos desde Ayuda y la reactivamos.', pausado: true });
+
+  req.cuentaId = cuenta.id;
+  req.cuenta = cuenta;
+  next();
 }
 
 app.post('/api/registro', ruta(async (req, res) => {
@@ -823,10 +935,12 @@ app.post('/api/registro', ruta(async (req, res) => {
   if (!MAIL_OK.test(mail)) return res.status(400).json({ error: 'Ese mail no parece válido.' });
   if (String(password).length < 8)
     return res.status(400).json({ error: 'La contraseña tiene que tener al menos 8 caracteres.' });
-  if (!limitar('reg:' + req.ip, 5, 60))
-    return res.status(429).json({ error: 'Demasiadas cuentas creadas desde acá. Probá más tarde.' });
   if ((await data.q('SELECT id FROM cuentas WHERE email = ?', [mail])).length)
     return res.status(409).json({ error: 'Ya hay una cuenta con ese mail.' });
+  // Se cuentan solo las cuentas creadas de verdad: varios entrenadores pueden compartir
+  // la conexión del gimnasio y no queremos bloquearlos por eso.
+  if (!limitar('reg:' + req.ip, 12, 60))
+    return res.status(429).json({ error: 'Se crearon muchas cuentas desde esta conexión. Probá en un rato.' });
 
   const total = await data.q('SELECT COUNT(*) AS n FROM cuentas');
   const esAdmin = Number(total[0].n) === 0 ||
@@ -901,13 +1015,20 @@ app.get('/api/ejercicios', auth, ruta(async (req, res) =>
 app.post('/api/ejercicios', auth, ruta(async (req, res) => {
   if (!String((req.body || {}).nombre || '').trim())
     return res.status(400).json({ error: 'Poné un nombre al ejercicio.' });
-  res.json(await data.crearEjercicio(req.cuentaId, req.body));
+  const tope = await topeAlcanzado(req.cuenta, 'ejercicios');
+  if (tope) return res.status(402).json({ error: tope, tope: 'ejercicios' });
+  const r = await data.crearEjercicio(req.cuentaId, req.body);
+  if (r.linkInvalido)
+    return res.status(400).json({ error: 'Ese link de video no es válido. Pegá el link completo de YouTube o Instagram.' });
+  res.json(r);
 }));
 
 app.patch('/api/ejercicios/:id', auth, ruta(async (req, res) => {
   if (!String((req.body || {}).nombre || '').trim())
     return res.status(400).json({ error: 'Poné un nombre al ejercicio.' });
-  await data.editarEjercicio(req.cuentaId, req.params.id, req.body);
+  const r = await data.editarEjercicio(req.cuentaId, req.params.id, req.body);
+  if (r && r.linkInvalido)
+    return res.status(400).json({ error: 'Ese link de video no es válido. Pegá el link completo de YouTube o Instagram.' });
   res.json({ ok: true });
 }));
 
@@ -926,6 +1047,8 @@ app.get('/api/clientes', auth, ruta(async (req, res) => res.json(await data.clie
 app.post('/api/clientes', auth, ruta(async (req, res) => {
   if (!String((req.body || {}).nombre || '').trim())
     return res.status(400).json({ error: 'Poné el nombre del alumno.' });
+  const tope = await topeAlcanzado(req.cuenta, 'alumnos');
+  if (tope) return res.status(402).json({ error: tope, tope: 'alumnos' });
   res.json(await data.crearCliente(req.cuentaId, req.body));
 }));
 
@@ -1035,9 +1158,15 @@ app.post('/api/clientes/:id/importar', auth, ruta(async (req, res) => {
 }));
 
 app.post('/api/importar', auth, ruta(async (req, res) => {
+  if (!limites(req.cuenta.plan).importar)
+    return res.status(402).json({
+      error: 'La carga desde Excel es del plan completo. Es lo que te deja pasar tu planilla entera de una vez.',
+      tope: 'importar' });
   const { alumnos, ejercicios, rutinas, turnos } = req.body || {};
   const total = (alumnos || []).length + (ejercicios || []).length + (rutinas || []).length + (turnos || []).length;
   if (!total) return res.status(400).json({ error: 'El archivo no trae datos para importar.' });
+  const tope = await topeAlcanzado(req.cuenta, 'alumnos', (alumnos || []).length);
+  if (tope) return res.status(402).json({ error: tope, tope: 'alumnos' });
   res.json(await data.importarTodo(req.cuentaId, { alumnos, ejercicios, rutinas, turnos }));
 }));
 
@@ -1055,6 +1184,8 @@ app.get('/api/plantillas/:id', auth, ruta(async (req, res) => {
 app.post('/api/plantillas', auth, ruta(async (req, res) => {
   if (!String((req.body || {}).nombre || '').trim())
     return res.status(400).json({ error: 'Poné un nombre a la plantilla.' });
+  const tope = await topeAlcanzado(req.cuenta, 'plantillas');
+  if (tope) return res.status(402).json({ error: tope, tope: 'plantillas' });
   res.json(await data.crearPlantilla(req.cuentaId, req.body));
 }));
 
@@ -1107,6 +1238,8 @@ app.delete('/api/plantilla-items/:id', auth, ruta(async (req, res) => {
 }));
 
 app.post('/api/rutinas/:id/plantilla', auth, ruta(async (req, res) => {
+  const tope = await topeAlcanzado(req.cuenta, 'plantillas');
+  if (tope) return res.status(402).json({ error: tope, tope: 'plantillas' });
   const p = await data.guardarComoPlantilla(req.cuentaId, req.params.id, (req.body || {}).nombre);
   if (!p) return res.status(404).json({ error: 'No encontramos esa rutina.' });
   res.json(p);
@@ -1188,23 +1321,20 @@ app.delete('/api/turnos/:id', auth, ruta(async (req, res) => {
    PERFIL Y ADMINISTRACIÓN
 ------------------------------------------------------------------- */
 app.get('/api/perfil', auth, ruta(async (req, res) => {
-  const c = await data.cuenta(req.cuentaId);
-  if (!c) return res.status(404).json({ error: 'No encontramos tu cuenta.' });
-  res.json(c);
+  const lim = limites(req.cuenta.plan);
+  res.json(Object.assign({}, req.cuenta, {
+    plan_nombre: lim.nombre,
+    limites: lim,
+    uso: req.cuenta.plan === 'pausado' ? { alumnos: 0, ejercicios: 0, plantillas: 0 } : await usoDe(req.cuentaId)
+  }));
 }));
-
-async function soloAdmin(req, res, next) {
-  const c = await data.cuenta(req.cuentaId);
-  if (!c || c.rol !== 'admin')
-    return res.status(403).json({ error: 'Esta sección es solo para la cuenta de administración.' });
-  next();
-}
 
 app.get('/api/admin/cuentas', auth, soloAdmin, ruta(async (req, res) => {
   res.json(await data.q(
     `SELECT c.id, c.email, c.nombre, c.rol, c.plan, c.creada,
             (SELECT COUNT(*) FROM clientes x WHERE x.cuenta_id = c.id AND x.activo = 1) AS alumnos,
-            (SELECT COUNT(*) FROM ejercicios e WHERE e.cuenta_id = c.id) AS ejercicios
+            (SELECT COUNT(*) FROM ejercicios e WHERE e.cuenta_id = c.id) AS ejercicios,
+            (SELECT COUNT(*) FROM mensajes m WHERE m.cuenta_id = c.id AND m.estado = 'abierto') AS consultas
        FROM cuentas c ORDER BY c.creada DESC`));
 }));
 
@@ -1224,9 +1354,46 @@ app.delete('/api/admin/cuentas/:id', auth, soloAdmin, ruta(async (req, res) => {
   if (id === req.cuentaId)
     return res.status(400).json({ error: 'No podés eliminar tu propia cuenta de administración.' });
   for (const t of ['seguimiento', 'series_log', 'rutina_items', 'rutina_dias', 'rutinas',
-                   'plantilla_items', 'plantilla_dias', 'plantillas', 'turnos', 'clientes', 'ejercicios'])
+                   'plantilla_items', 'plantilla_dias', 'plantillas', 'turnos', 'clientes',
+                   'ejercicios', 'grupos', 'mensajes'])
     await data.run(`DELETE FROM ${t} WHERE cuenta_id = ?`, [id]);
   await data.run('DELETE FROM cuentas WHERE id = ?', [id]);
+  res.json({ ok: true });
+}));
+
+/* ------------------------------------------------------------------
+   CONSULTAS Y SUGERENCIAS
+------------------------------------------------------------------- */
+function soloAdmin(req, res, next) {
+  if (!req.cuenta || req.cuenta.rol !== 'admin')
+    return res.status(403).json({ error: 'Esta sección es solo para la cuenta de administración.' });
+  next();
+}
+
+const TIPOS = ['pregunta', 'idea', 'problema'];
+
+app.get('/api/mensajes', auth, ruta(async (req, res) =>
+  res.json(await data.misMensajes(req.cuentaId))));
+
+app.post('/api/mensajes', auth, ruta(async (req, res) => {
+  const { tipo, texto } = req.body || {};
+  const t = String(texto || '').trim();
+  if (!t) return res.status(400).json({ error: 'Escribí tu consulta antes de enviarla.' });
+  if (t.length > 2000) return res.status(400).json({ error: 'La consulta es muy larga. Contala en menos palabras.' });
+  if (!limitar('msg:' + req.cuentaId, 10, 60))
+    return res.status(429).json({ error: 'Ya nos mandaste varias consultas seguidas. Esperá un rato.' });
+  res.json(await data.crearMensaje(req.cuentaId, { tipo: TIPOS.includes(tipo) ? tipo : 'pregunta', texto: t }));
+}));
+
+app.get('/api/admin/mensajes', auth, soloAdmin, ruta(async (req, res) =>
+  res.json(await data.todosLosMensajes())));
+
+app.patch('/api/admin/mensajes/:id', auth, soloAdmin, ruta(async (req, res) => {
+  const { respuesta, estado } = req.body || {};
+  if (estado && !['abierto', 'respondido', 'cerrado'].includes(estado))
+    return res.status(400).json({ error: 'Ese estado no existe.' });
+  if (!await data.responderMensaje(req.params.id, { respuesta, estado }))
+    return res.status(404).json({ error: 'No encontramos esa consulta.' });
   res.json({ ok: true });
 }));
 
