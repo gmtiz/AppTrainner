@@ -84,6 +84,11 @@ const TABLAS = [
      id TEXT PRIMARY KEY, cuenta_id TEXT NOT NULL, dia_id TEXT NOT NULL,
      ejercicio_id TEXT NOT NULL, orden INTEGER NOT NULL DEFAULT 0,
      series TEXT, reps TEXT, nota TEXT)`,
+  // Asistencia: quién vino y quién faltó, por fecha.
+  `CREATE TABLE IF NOT EXISTS asistencias (
+     id TEXT PRIMARY KEY, cuenta_id TEXT NOT NULL, cliente_id TEXT NOT NULL,
+     fecha TEXT NOT NULL, estado TEXT NOT NULL, creado TEXT NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS ix_asistencias ON asistencias(cuenta_id, fecha)`,
   // Consultas y sugerencias que los entrenadores mandan desde la app.
   `CREATE TABLE IF NOT EXISTS mensajes (
      id TEXT PRIMARY KEY, cuenta_id TEXT NOT NULL, tipo TEXT NOT NULL, texto TEXT NOT NULL,
@@ -112,7 +117,9 @@ const COLUMNAS = [
   ['seguimiento', 'creado', 'TEXT'],
   ['clientes', 'peso_inicial', 'REAL'],
   ['clientes', 'altura', 'REAL'],
-  ['clientes', 'notas', 'TEXT']
+  ['clientes', 'notas', 'TEXT'],
+  ['cuentas', 'sesiones_desde', 'TEXT'],
+  ['cuentas', 'capacidad', 'INTEGER']
 ];
 
 async function prepararBase() {
@@ -182,6 +189,30 @@ async function topeAlcanzado(cuenta, recurso, sumar = 1) {
     : `Llegaste al tope de ${lim[recurso]} ${nombres[recurso]} de tu plan. Escribinos y lo ampliamos.`;
 }
 
+/* ------------------------------------------------------------------
+   VALIDACIONES DE ENTRADA
+   Todo lo que llega del navegador se revisa acá antes de tocar la base.
+   Una fecha inválida no solo guarda basura: rompe el cálculo de semanas
+   y hace fallar el registro del alumno más adelante.
+------------------------------------------------------------------- */
+const esFecha = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) && !isNaN(new Date(v + 'T00:00:00'));
+const esHora = v => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(v || ''));
+
+// Devuelve el número si está en rango, o null si no sirve.
+function numeroEn(v, min, max) {
+  if (v === '' || v === null || v === undefined) return null;
+  const n = Number(v);
+  if (!isFinite(n) || n < min || n > max) return null;
+  return n;
+}
+const RANGOS = {
+  peso: [20, 400],        // kg de una persona
+  altura: [80, 260],      // cm
+  kg: [0, 1000],          // peso levantado
+  reps: [1, 500],
+  duracion: [5, 300]      // minutos de un turno
+};
+
 /* Un link de video tiene que ser un link, no código.
    Sin esto, alguien podría guardar "javascript:..." y ejecutarlo al tocarlo. */
 function linkSeguro(url) {
@@ -210,9 +241,10 @@ function normalizarGrupo(g) {
   return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
 }
 const semanaDe = (inicio, fecha) => {
-  if (!inicio) return 1;
+  if (!inicio || !/^\d{4}-\d{2}-\d{2}$/.test(inicio)) return 1;
   const dias = Math.floor((new Date((fecha || hoy()) + 'T00:00:00') - new Date(inicio + 'T00:00:00')) / 864e5);
-  return Math.max(1, Math.floor(dias / 7) + 1);
+  if (!isFinite(dias)) return 1;
+  return Math.max(1, Math.min(999, Math.floor(dias / 7) + 1));
 };
 
 const data = {
@@ -220,7 +252,8 @@ const data = {
   async run(sql, args = []) { await db.execute({ sql, args }); },
 
   cuenta: async id =>
-    (await data.q('SELECT id, email, nombre, rol, plan, creada FROM cuentas WHERE id = ?', [id]))[0],
+    (await data.q(
+      'SELECT id, email, nombre, rol, plan, creada, sesiones_desde, capacidad FROM cuentas WHERE id = ?', [id]))[0],
 
   /* --- grupos musculares --- */
   grupos: cuentaId =>
@@ -353,7 +386,7 @@ const data = {
 
     // Los días y horarios que el PT carga junto con el alumno van directo a la agenda.
     for (const t of (turnos || [])) {
-      if (t.dia_semana == null || !t.hora) continue;
+      if (!esHora(t.hora) || numeroEn(t.dia_semana, 0, 6) === null) continue;
       await data.run(
         'INSERT INTO turnos (id, cuenta_id, cliente_id, dia_semana, hora, duracion, nota) VALUES (?,?,?,?,?,?,?)',
         [uid(), cuentaId, id, Number(t.dia_semana), t.hora, Number(t.duracion) || 60, t.nota || null]);
@@ -854,6 +887,54 @@ const data = {
     data.q(`SELECT * FROM seguimiento WHERE cuenta_id = ? AND cliente_id = ?
              ORDER BY fecha DESC LIMIT 60`, [cuentaId, clienteId]),
 
+  /* --- asistencia --- */
+  asistenciasDe: (cuentaId, fecha) =>
+    data.q('SELECT * FROM asistencias WHERE cuenta_id = ? AND fecha = ?', [cuentaId, fecha]),
+
+  async marcarAsistencia(cuentaId, { cliente_id, fecha, estado }) {
+    if (!await data.cliente(cuentaId, cliente_id)) return null;
+    const ya = (await data.q(
+      'SELECT id FROM asistencias WHERE cuenta_id = ? AND cliente_id = ? AND fecha = ?',
+      [cuentaId, cliente_id, fecha]))[0];
+    if (!estado) {                       // volver a "sin marcar"
+      if (ya) await data.run('DELETE FROM asistencias WHERE id = ?', [ya.id]);
+      return { ok: true, estado: null };
+    }
+    if (ya) await data.run('UPDATE asistencias SET estado = ?, creado = ? WHERE id = ?', [estado, ahora(), ya.id]);
+    else await data.run(
+      'INSERT INTO asistencias (id, cuenta_id, cliente_id, fecha, estado, creado) VALUES (?,?,?,?,?,?)',
+      [uid(), cuentaId, cliente_id, fecha, estado, ahora()]);
+    return { ok: true, estado };
+  },
+
+  // Cuántas veces vino y cuántas faltó en el plan actual.
+  async resumenAsistencia(cuentaId, clienteId, desde) {
+    const filas = await data.q(
+      `SELECT estado, COUNT(*) AS n FROM asistencias
+        WHERE cuenta_id = ? AND cliente_id = ? AND fecha >= ? GROUP BY estado`,
+      [cuentaId, clienteId, desde || '0000-01-01']);
+    const r = { presente: 0, ausente: 0 };
+    filas.forEach(f => { r[f.estado] = Number(f.n); });
+    return r;
+  },
+
+  /* --- último peso levantado por ejercicio --- */
+  // Le sirve al entrenador para armar la progresión sin buscar en el historial.
+  async ultimosPesos(cuentaId, clienteId) {
+    const filas = await data.q(
+      `SELECT s.ejercicio_id, s.kg, s.reps, s.fecha FROM series_log s
+        WHERE s.cuenta_id = ? AND s.cliente_id = ?
+        ORDER BY s.fecha DESC, s.creado DESC LIMIT 300`, [cuentaId, clienteId]);
+    const mejor = {};
+    for (const f of filas) {
+      const a = mejor[f.ejercicio_id];
+      // De la última fecha entrenada nos quedamos con la serie más pesada.
+      if (!a) mejor[f.ejercicio_id] = { kg: f.kg, reps: f.reps, fecha: f.fecha };
+      else if (f.fecha === a.fecha && f.kg > a.kg) mejor[f.ejercicio_id] = { kg: f.kg, reps: f.reps, fecha: f.fecha };
+    }
+    return mejor;
+  },
+
   /* --- consultas y sugerencias --- */
   crearMensaje: async (cuentaId, { tipo, texto }) => {
     const id = uid();
@@ -910,12 +991,19 @@ async function auth(req, res, next) {
   const h = req.headers.authorization || '';
   const token = h.startsWith('Bearer ') ? h.slice(7) : null;
   if (!token) return res.status(401).json({ error: 'Falta iniciar sesión.' });
-  let cuentaId;
-  try { cuentaId = jwt.verify(token, SECRET).cuentaId; }
+  let datos;
+  try { datos = jwt.verify(token, SECRET); }
   catch { return res.status(401).json({ error: 'La sesión venció. Volvé a entrar.' }); }
 
-  const cuenta = await data.cuenta(cuentaId);
+  const cuenta = await data.cuenta(datos.cuentaId);
   if (!cuenta) return res.status(401).json({ error: 'Esta cuenta ya no existe.' });
+
+  // Al cambiar la contraseña se cierran las sesiones abiertas en otros dispositivos.
+  // La comparación va en segundos porque esa es la resolución del token: si no,
+  // la sesión que devolvemos al cambiar la clave nacería vencida.
+  if (cuenta.sesiones_desde &&
+      datos.iat < Math.floor(new Date(cuenta.sesiones_desde).getTime() / 1000))
+    return res.status(401).json({ error: 'Cambiaste la contraseña. Volvé a entrar.' });
 
   // Una cuenta pausada no puede leer ni escribir nada del sistema.
   if (cuenta.plan === 'pausado' && !PERMITIDO_PAUSADO.includes(req.path))
@@ -966,6 +1054,14 @@ app.post('/api/login', ruta(async (req, res) => {
              nombre: c.nombre, rol: c.rol });
 }));
 
+app.patch('/api/perfil', auth, ruta(async (req, res) => {
+  const cap = numeroEn((req.body || {}).capacidad, 1, 20);
+  if (cap === null)
+    return res.status(400).json({ error: 'La capacidad tiene que ser un número de 1 a 20.' });
+  await data.run('UPDATE cuentas SET capacidad = ? WHERE id = ?', [cap, req.cuentaId]);
+  res.json({ ok: true });
+}));
+
 app.post('/api/cambiar-clave', auth, ruta(async (req, res) => {
   const { actual, nueva } = req.body || {};
   if (String(nueva || '').length < 8)
@@ -973,8 +1069,9 @@ app.post('/api/cambiar-clave', auth, ruta(async (req, res) => {
   const c = (await data.q('SELECT * FROM cuentas WHERE id = ?', [req.cuentaId]))[0];
   if (!c || !bcrypt.compareSync(actual || '', c.password))
     return res.status(401).json({ error: 'La contraseña actual no coincide.' });
-  await data.run('UPDATE cuentas SET password = ? WHERE id = ?', [bcrypt.hashSync(nueva, 12), req.cuentaId]);
-  res.json({ ok: true });
+  await data.run('UPDATE cuentas SET password = ?, sesiones_desde = ? WHERE id = ?',
+    [bcrypt.hashSync(nueva, 12), ahora(), req.cuentaId]);
+  res.json({ ok: true, token: jwt.sign({ cuentaId: req.cuentaId }, SECRET, { expiresIn: '30d' }) });
 }));
 
 /* ------------------------------------------------------------------
@@ -1044,9 +1141,21 @@ app.delete('/api/ejercicios/:id', auth, ruta(async (req, res) => {
 ------------------------------------------------------------------- */
 app.get('/api/clientes', auth, ruta(async (req, res) => res.json(await data.clientes(req.cuentaId))));
 
+// Revisa nombre, fecha, peso y altura. Devuelve un mensaje si algo no sirve.
+function revisarAlumno(b) {
+  if (!String((b || {}).nombre || '').trim()) return 'Poné el nombre del alumno.';
+  if (b.inicio && !esFecha(b.inicio)) return 'La fecha de arranque no es válida.';
+  if (b.peso_inicial !== '' && b.peso_inicial != null && numeroEn(b.peso_inicial, ...RANGOS.peso) === null)
+    return 'El peso inicial tiene que estar entre 20 y 400 kg.';
+  if (b.altura !== '' && b.altura != null && numeroEn(b.altura, ...RANGOS.altura) === null)
+    return 'La altura tiene que estar entre 80 y 260 cm.';
+  if (String(b.notas || '').length > 2000) return 'Las anotaciones son muy largas.';
+  return null;
+}
+
 app.post('/api/clientes', auth, ruta(async (req, res) => {
-  if (!String((req.body || {}).nombre || '').trim())
-    return res.status(400).json({ error: 'Poné el nombre del alumno.' });
+  const mal = revisarAlumno(req.body);
+  if (mal) return res.status(400).json({ error: mal });
   const tope = await topeAlcanzado(req.cuenta, 'alumnos');
   if (tope) return res.status(402).json({ error: tope, tope: 'alumnos' });
   res.json(await data.crearCliente(req.cuentaId, req.body));
@@ -1058,14 +1167,27 @@ app.get('/api/clientes/:id', auth, ruta(async (req, res) => {
   c.rutinas = await data.rutinasDe(req.cuentaId, c.id);
   c.registros = await data.registrosDe(req.cuentaId, c.id);
   c.seguimiento = await data.seguimientoDe(req.cuentaId, c.id);
+  c.asistencia = await data.resumenAsistencia(req.cuentaId, c.id, c.inicio);
   res.json(c);
 }));
 
 app.patch('/api/clientes/:id', auth, ruta(async (req, res) => {
+  const mal = revisarAlumno(req.body);
+  if (mal) return res.status(400).json({ error: mal });
   if (!await data.cliente(req.cuentaId, req.params.id))
     return res.status(404).json({ error: 'No encontramos ese alumno.' });
   await data.editarCliente(req.cuentaId, req.params.id, req.body);
   res.json({ ok: true });
+}));
+
+app.post('/api/clientes/:id/link', auth, ruta(async (req, res) => {
+  const c = await data.cliente(req.cuentaId, req.params.id);
+  if (!c) return res.status(404).json({ error: 'No encontramos ese alumno.' });
+  let token = codigo();
+  while ((await data.q('SELECT id FROM clientes WHERE token = ?', [token])).length) token = codigo();
+  await data.run('UPDATE clientes SET token = ? WHERE id = ? AND cuenta_id = ?',
+    [token, req.params.id, req.cuentaId]);
+  res.json({ token });
 }));
 
 app.delete('/api/clientes/:id', auth, ruta(async (req, res) => {
@@ -1165,6 +1287,8 @@ app.post('/api/importar', auth, ruta(async (req, res) => {
   const { alumnos, ejercicios, rutinas, turnos } = req.body || {};
   const total = (alumnos || []).length + (ejercicios || []).length + (rutinas || []).length + (turnos || []).length;
   if (!total) return res.status(400).json({ error: 'El archivo no trae datos para importar.' });
+  if (total > 5000)
+    return res.status(400).json({ error: 'El archivo es demasiado grande. Partilo en dos y probá de nuevo.' });
   const tope = await topeAlcanzado(req.cuenta, 'alumnos', (alumnos || []).length);
   if (tope) return res.status(402).json({ error: tope, tope: 'alumnos' });
   res.json(await data.importarTodo(req.cuentaId, { alumnos, ejercicios, rutinas, turnos }));
@@ -1264,21 +1388,23 @@ app.delete('/api/plantillas/:id', auth, ruta(async (req, res) => {
 ------------------------------------------------------------------- */
 const aMinutos = h => { const [a, b] = String(h).split(':').map(Number); return (a || 0) * 60 + (b || 0); };
 
-function marcarChoques(turnos) {
+// Muchos entrenadores atienden a dos o tres alumnos a la vez: solo avisamos
+// cuando un horario supera la capacidad que el entrenador declaró.
+function marcarChoques(turnos, capacidad = 1) {
+  const cap = Math.max(1, Number(capacidad) || 1);
   const choques = new Set();
-  for (let i = 0; i < turnos.length; i++)
-    for (let j = i + 1; j < turnos.length; j++) {
-      const a = turnos[i], b = turnos[j];
-      if (a.dia_semana !== b.dia_semana) continue;
-      const ia = aMinutos(a.hora), fa = ia + (a.duracion || 60);
-      const ib = aMinutos(b.hora), fb = ib + (b.duracion || 60);
-      if (ia < fb && ib < fa) { choques.add(a.id); choques.add(b.id); }
-    }
+  for (const a of turnos) {
+    const ia = aMinutos(a.hora), fa = ia + (a.duracion || 60);
+    const simultaneos = turnos.filter(b =>
+      b.dia_semana === a.dia_semana &&
+      aMinutos(b.hora) < fa && ia < aMinutos(b.hora) + (b.duracion || 60));
+    if (simultaneos.length > cap) simultaneos.forEach(t => choques.add(t.id));
+  }
   return turnos.map(t => Object.assign({}, t, { choca: choques.has(t.id) }));
 }
 
 app.get('/api/turnos', auth, ruta(async (req, res) => {
-  const todos = marcarChoques(await data.turnos(req.cuentaId));
+  const todos = marcarChoques(await data.turnos(req.cuentaId), req.cuenta.capacidad);
   // ?fecha=AAAA-MM-DD devuelve solo los de ese día de la semana, en orden de horario.
   if (req.query.fecha) {
     const d = new Date(req.query.fecha + 'T00:00:00');
@@ -1290,23 +1416,58 @@ app.get('/api/turnos', auth, ruta(async (req, res) => {
   res.json(todos);
 }));
 
+app.get('/api/asistencias', auth, ruta(async (req, res) => {
+  if (!esFecha(req.query.fecha)) return res.status(400).json({ error: 'Fecha inválida.' });
+  res.json(await data.asistenciasDe(req.cuentaId, req.query.fecha));
+}));
+
+app.post('/api/asistencias', auth, ruta(async (req, res) => {
+  const { cliente_id, fecha, estado } = req.body || {};
+  if (!esFecha(fecha)) return res.status(400).json({ error: 'Fecha inválida.' });
+  if (estado && !['presente', 'ausente'].includes(estado))
+    return res.status(400).json({ error: 'Ese estado no existe.' });
+  const r = await data.marcarAsistencia(req.cuentaId, { cliente_id, fecha, estado });
+  if (!r) return res.status(404).json({ error: 'No encontramos ese alumno.' });
+  res.json(r);
+}));
+
+app.get('/api/clientes/:id/ultimos', auth, ruta(async (req, res) => {
+  if (!await data.cliente(req.cuentaId, req.params.id))
+    return res.status(404).json({ error: 'No encontramos ese alumno.' });
+  res.json(await data.ultimosPesos(req.cuentaId, req.params.id));
+}));
+
 app.get('/api/clientes/:id/turnos', auth, ruta(async (req, res) => {
   if (!await data.cliente(req.cuentaId, req.params.id))
     return res.status(404).json({ error: 'No encontramos ese alumno.' });
-  const todos = marcarChoques(await data.turnos(req.cuentaId));
+  const todos = marcarChoques(await data.turnos(req.cuentaId), req.cuenta.capacidad);
   res.json(todos.filter(t => t.cliente_id === req.params.id));
 }));
 
+function revisarTurno(b) {
+  if (numeroEn((b || {}).dia_semana, 0, 6) === null) return 'Elegí un día de la semana.';
+  if (!esHora((b || {}).hora)) return 'La hora tiene que ser del estilo 09:30.';
+  if (b.duracion != null && b.duracion !== '' && numeroEn(b.duracion, ...RANGOS.duracion) === null)
+    return 'La duración tiene que estar entre 5 y 300 minutos.';
+  return null;
+}
+
 app.post('/api/turnos', auth, ruta(async (req, res) => {
-  const { cliente_id, dia_semana, hora } = req.body || {};
-  if (!cliente_id || dia_semana == null || !hora)
-    return res.status(400).json({ error: 'Elegí el alumno, el día y la hora.' });
+  const { cliente_id } = req.body || {};
+  if (!cliente_id) return res.status(400).json({ error: 'Elegí el alumno.' });
+  const mal = revisarTurno(req.body);
+  if (mal) return res.status(400).json({ error: mal });
+  const cuantos = Number((await data.q(
+    'SELECT COUNT(*) AS n FROM turnos WHERE cuenta_id = ?', [req.cuentaId]))[0].n);
+  if (cuantos >= 400) return res.status(402).json({ error: 'Llegaste al tope de turnos. Escribinos y lo ampliamos.' });
   const r = await data.crearTurno(req.cuentaId, req.body);
   if (!r) return res.status(404).json({ error: 'No encontramos ese alumno.' });
-  res.json(marcarChoques(await data.turnos(req.cuentaId)).find(t => t.id === r.id));
+  res.json(marcarChoques(await data.turnos(req.cuentaId), req.cuenta.capacidad).find(t => t.id === r.id));
 }));
 
 app.patch('/api/turnos/:id', auth, ruta(async (req, res) => {
+  const mal = revisarTurno(req.body);
+  if (mal) return res.status(400).json({ error: mal });
   if (!await data.editarTurno(req.cuentaId, req.params.id, req.body))
     return res.status(404).json({ error: 'No encontramos ese turno.' });
   res.json({ ok: true });
@@ -1323,6 +1484,7 @@ app.delete('/api/turnos/:id', auth, ruta(async (req, res) => {
 app.get('/api/perfil', auth, ruta(async (req, res) => {
   const lim = limites(req.cuenta.plan);
   res.json(Object.assign({}, req.cuenta, {
+    capacidad: req.cuenta.capacidad || 1,
     plan_nombre: lim.nombre,
     limites: lim,
     uso: req.cuenta.plan === 'pausado' ? { alumnos: 0, ejercicios: 0, plantillas: 0 } : await usoDe(req.cuentaId)
@@ -1340,6 +1502,9 @@ app.get('/api/admin/cuentas', auth, soloAdmin, ruta(async (req, res) => {
 
 app.patch('/api/admin/cuentas/:id', auth, soloAdmin, ruta(async (req, res) => {
   const { plan, rol } = req.body || {};
+  // Sin esto, un admin puede pausarse o degradarse a sí mismo y quedar afuera sin vuelta.
+  if (req.params.id === req.cuentaId && (plan === 'pausado' || rol === 'pt'))
+    return res.status(400).json({ error: 'No podés dejar tu propia cuenta de administración sin acceso.' });
   if (plan && !['prueba', 'activo', 'pausado'].includes(plan))
     return res.status(400).json({ error: 'Ese plan no existe.' });
   if (rol && !['pt', 'admin'].includes(rol))
@@ -1355,7 +1520,7 @@ app.delete('/api/admin/cuentas/:id', auth, soloAdmin, ruta(async (req, res) => {
     return res.status(400).json({ error: 'No podés eliminar tu propia cuenta de administración.' });
   for (const t of ['seguimiento', 'series_log', 'rutina_items', 'rutina_dias', 'rutinas',
                    'plantilla_items', 'plantilla_dias', 'plantillas', 'turnos', 'clientes',
-                   'ejercicios', 'grupos', 'mensajes'])
+                   'ejercicios', 'grupos', 'mensajes', 'asistencias'])
     await data.run(`DELETE FROM ${t} WHERE cuenta_id = ?`, [id]);
   await data.run('DELETE FROM cuentas WHERE id = ?', [id]);
   res.json({ ok: true });
@@ -1417,10 +1582,15 @@ app.get('/api/alumno/:token', ruta(async (req, res) => {
 app.post('/api/alumno/:token/series', ruta(async (req, res) => {
   const c = await data.clientePorToken(req.params.token);
   if (!c) return res.status(404).json({ error: 'Este link no es válido.' });
+  if (!limitar('serie:' + req.params.token, 300, 60))
+    return res.status(429).json({ error: 'Anotaste muchísimas series seguidas. Esperá un momento.' });
   const { item_id, ejercicio_id, kg, reps } = req.body || {};
-  if ((!item_id && !ejercicio_id) || !kg || !reps)
-    return res.status(400).json({ error: 'Cargá el peso y las repeticiones.' });
-  await data.registrarSerie(c, { item_id, ejercicio_id, kg, reps });
+  if (!item_id && !ejercicio_id)
+    return res.status(400).json({ error: 'No sabemos de qué ejercicio es esta serie.' });
+  const pesoOk = numeroEn(kg, ...RANGOS.kg), repsOk = numeroEn(reps, ...RANGOS.reps);
+  if (pesoOk === null || repsOk === null)
+    return res.status(400).json({ error: 'Revisá el peso y las repeticiones: hay algo raro en esos números.' });
+  await data.registrarSerie(c, { item_id, ejercicio_id, kg: pesoOk, reps: repsOk });
   res.json({ hoy: await data.seriesDeHoy(c.cuenta_id, c.id) });
 }));
 
@@ -1434,11 +1604,15 @@ app.delete('/api/alumno/:token/series/:id', ruta(async (req, res) => {
 app.post('/api/alumno/:token/seguimiento', ruta(async (req, res) => {
   const c = await data.clientePorToken(req.params.token);
   if (!c) return res.status(404).json({ error: 'Este link no es válido.' });
+  if (!limitar('seg:' + req.params.token, 60, 60))
+    return res.status(429).json({ error: 'Guardaste el seguimiento muchas veces seguidas. Esperá un momento.' });
   const { peso, nota } = req.body || {};
-  if (!peso) return res.status(400).json({ error: 'Cargá tu peso para guardar el seguimiento.' });
+  const pesoOk = numeroEn(peso, ...RANGOS.peso);
+  if (pesoOk === null)
+    return res.status(400).json({ error: 'El peso tiene que estar entre 20 y 400 kg.' });
   await data.run(
     'INSERT INTO seguimiento (id, cuenta_id, cliente_id, fecha, peso, nota, semana, creado) VALUES (?,?,?,?,?,?,?,?)',
-    [uid(), c.cuenta_id, c.id, hoy(), Number(peso), nota || null, semanaDe(c.inicio), ahora()]);
+    [uid(), c.cuenta_id, c.id, hoy(), pesoOk, String(nota || '').slice(0, 300) || null, semanaDe(c.inicio), ahora()]);
   res.json({ ok: true });
 }));
 
