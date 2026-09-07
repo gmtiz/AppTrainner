@@ -84,6 +84,18 @@ const TABLAS = [
      id TEXT PRIMARY KEY, cuenta_id TEXT NOT NULL, dia_id TEXT NOT NULL,
      ejercicio_id TEXT NOT NULL, orden INTEGER NOT NULL DEFAULT 0,
      series TEXT, reps TEXT, nota TEXT)`,
+  // Observación del alumno sobre un ejercicio, una por día.
+  `CREATE TABLE IF NOT EXISTS observaciones (
+     id TEXT PRIMARY KEY, cuenta_id TEXT NOT NULL, cliente_id TEXT NOT NULL,
+     item_id TEXT, ejercicio_id TEXT NOT NULL, fecha TEXT NOT NULL, semana INTEGER,
+     texto TEXT NOT NULL, creado TEXT NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS ix_obs_cliente ON observaciones(cliente_id, fecha)`,
+  // Indicaciones que el entrenador le deja al alumno. Vale la última; las
+  // anteriores quedan como historial.
+  `CREATE TABLE IF NOT EXISTS indicaciones (
+     id TEXT PRIMARY KEY, cuenta_id TEXT NOT NULL, cliente_id TEXT NOT NULL,
+     texto TEXT NOT NULL, creado TEXT NOT NULL, leida TEXT)`,
+  `CREATE INDEX IF NOT EXISTS ix_indic_cliente ON indicaciones(cliente_id, creado)`,
   // Asistencia: quién vino y quién faltó, por fecha.
   `CREATE TABLE IF NOT EXISTS asistencias (
      id TEXT PRIMARY KEY, cuenta_id TEXT NOT NULL, cliente_id TEXT NOT NULL,
@@ -119,7 +131,8 @@ const COLUMNAS = [
   ['clientes', 'altura', 'REAL'],
   ['clientes', 'notas', 'TEXT'],
   ['cuentas', 'sesiones_desde', 'TEXT'],
-  ['cuentas', 'capacidad', 'INTEGER']
+  ['cuentas', 'capacidad', 'INTEGER'],
+  ['series_log', 'numero', 'INTEGER']
 ];
 
 async function prepararBase() {
@@ -153,17 +166,17 @@ const PLANES = {
   prueba: {
     nombre: 'Gratis',
     alumnos: 3, ejercicios: 25, plantillas: 1,
-    importar: false, exportar: false
+    importar: false, exportar: false, progreso: false
   },
   activo: {
     nombre: 'Completo',
     alumnos: 150, ejercicios: 600, plantillas: 25,
-    importar: true, exportar: true
+    importar: true, exportar: true, progreso: true
   },
   pausado: {
     nombre: 'Pausado',
     alumnos: 0, ejercicios: 0, plantillas: 0,
-    importar: false, exportar: false
+    importar: false, exportar: false, progreso: false
   }
 };
 const limites = plan => PLANES[plan] || PLANES.prueba;
@@ -826,23 +839,115 @@ const data = {
   borrarTurno: (cuentaId, id) => data.run('DELETE FROM turnos WHERE id = ? AND cuenta_id = ?', [id, cuentaId]),
 
   /* --- registros del alumno --- */
-  async registrarSerie(cliente, { item_id, ejercicio_id, kg, reps }) {
+  // Cada fila es una serie numerada. Si el alumno vuelve a anotar la misma serie
+  // del mismo ejercicio en el mismo día, se corrige en vez de duplicarse.
+  async registrarSerie(cliente, { item_id, ejercicio_id, numero, kg, reps }) {
     let rutina_id = null, dia_id = null, ejId = ejercicio_id;
     if (item_id) {
       const it = (await data.q(
         `SELECT i.id, i.ejercicio_id, d.id AS dia_id, d.rutina_id
            FROM rutina_items i JOIN rutina_dias d ON d.id = i.dia_id
           WHERE i.id = ? AND i.cuenta_id = ?`, [item_id, cliente.cuenta_id]))[0];
-      if (it) { rutina_id = it.rutina_id; dia_id = it.dia_id; ejId = it.ejercicio_id; }
+      if (!it) return null;
+      rutina_id = it.rutina_id; dia_id = it.dia_id; ejId = it.ejercicio_id;
+    } else {
+      const ej = (await data.q('SELECT id FROM ejercicios WHERE id = ? AND cuenta_id = ?',
+        [ejercicio_id, cliente.cuenta_id]))[0];
+      if (!ej) return null;
+    }
+
+    let n = numero;
+    if (n == null) {                       // sin número: va al final de las de hoy
+      const previas = await data.q(
+        `SELECT COUNT(*) AS n FROM series_log
+          WHERE cliente_id = ? AND fecha = ? AND ${item_id ? 'item_id = ?' : 'ejercicio_id = ?'}`,
+        [cliente.id, hoy(), item_id || ejId]);
+      n = Number(previas[0].n) + 1;
+    }
+
+    const ya = (await data.q(
+      `SELECT id FROM series_log WHERE cliente_id = ? AND fecha = ? AND numero = ?
+         AND ${item_id ? 'item_id = ?' : 'ejercicio_id = ?'}`,
+      [cliente.id, hoy(), n, item_id || ejId]))[0];
+
+    if (ya) {
+      await data.run('UPDATE series_log SET kg = ?, reps = ?, creado = ? WHERE id = ?',
+        [Number(kg), Number(reps), ahora(), ya.id]);
+      return { id: ya.id, numero: n };
     }
     const id = uid();
     await data.run(
       `INSERT INTO series_log (id, cuenta_id, cliente_id, ejercicio_id, fecha, kg, reps,
-                               rutina_id, dia_id, item_id, semana, creado)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+                               rutina_id, dia_id, item_id, semana, numero, creado)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [id, cliente.cuenta_id, cliente.id, ejId, hoy(), Number(kg), Number(reps),
-       rutina_id, dia_id, item_id || null, semanaDe(cliente.inicio), ahora()]);
+       rutina_id, dia_id, item_id || null, semanaDe(cliente.inicio), n, ahora()]);
+    return { id, numero: n };
+  },
+
+  // Lo anotado en la semana en curso: es lo que el alumno ve al abrir su rutina.
+  seriesDeLaSemana: (cuentaId, clienteId, semana) =>
+    data.q(`SELECT * FROM series_log WHERE cuenta_id = ? AND cliente_id = ? AND semana = ?
+             ORDER BY fecha, item_id, numero`, [cuentaId, clienteId, semana]),
+
+  /* --- observaciones del alumno, una por ejercicio y día --- */
+  async guardarObservacion(cliente, { item_id, ejercicio_id, texto }) {
+    let ejId = ejercicio_id;
+    if (item_id) {
+      const it = (await data.q(
+        'SELECT ejercicio_id FROM rutina_items WHERE id = ? AND cuenta_id = ?',
+        [item_id, cliente.cuenta_id]))[0];
+      if (!it) return null;
+      ejId = it.ejercicio_id;
+    }
+    const limpio = String(texto || '').trim().slice(0, 500);
+    const ya = (await data.q(
+      'SELECT id FROM observaciones WHERE cliente_id = ? AND fecha = ? AND item_id IS ?',
+      [cliente.id, hoy(), item_id || null]))[0];
+    if (!limpio) {
+      if (ya) await data.run('DELETE FROM observaciones WHERE id = ?', [ya.id]);
+      return { ok: true, texto: '' };
+    }
+    if (ya) await data.run('UPDATE observaciones SET texto = ?, creado = ? WHERE id = ?',
+      [limpio, ahora(), ya.id]);
+    else await data.run(
+      `INSERT INTO observaciones (id, cuenta_id, cliente_id, item_id, ejercicio_id, fecha, semana, texto, creado)
+       VALUES (?,?,?,?,?,?,?,?,?)`,
+      [uid(), cliente.cuenta_id, cliente.id, item_id || null, ejId, hoy(),
+       semanaDe(cliente.inicio), limpio, ahora()]);
+    return { ok: true, texto: limpio };
+  },
+
+  observacionesDeLaSemana: (cuentaId, clienteId, semana) =>
+    data.q('SELECT * FROM observaciones WHERE cuenta_id = ? AND cliente_id = ? AND semana = ?',
+      [cuentaId, clienteId, semana]),
+
+  /* --- indicaciones del entrenador --- */
+  indicacionActiva: async (cuentaId, clienteId) =>
+    (await data.q('SELECT * FROM indicaciones WHERE cuenta_id = ? AND cliente_id = ? ORDER BY creado DESC LIMIT 1',
+      [cuentaId, clienteId]))[0],
+
+  indicacionesDe: (cuentaId, clienteId) =>
+    data.q('SELECT * FROM indicaciones WHERE cuenta_id = ? AND cliente_id = ? ORDER BY creado DESC LIMIT 30',
+      [cuentaId, clienteId]),
+
+  async crearIndicacion(cuentaId, clienteId, texto) {
+    if (!await data.cliente(cuentaId, clienteId)) return null;
+    const id = uid();
+    // Al escribir una nueva, el alumno la ve como no leída aunque haya leído la anterior.
+    await data.run('INSERT INTO indicaciones (id, cuenta_id, cliente_id, texto, creado) VALUES (?,?,?,?,?)',
+      [id, cuentaId, clienteId, String(texto).trim().slice(0, 1000), ahora()]);
     return { id };
+  },
+
+  borrarIndicacion: (cuentaId, id) =>
+    data.run('DELETE FROM indicaciones WHERE id = ? AND cuenta_id = ?', [id, cuentaId]),
+
+  marcarLeida: async (cliente, id) => {
+    const i = (await data.q('SELECT id FROM indicaciones WHERE id = ? AND cliente_id = ?', [id, cliente.id]))[0];
+    if (!i) return false;
+    await data.run('UPDATE indicaciones SET leida = ? WHERE id = ?', [ahora(), id]);
+    return true;
   },
 
   borrarSerie: (cuentaId, clienteId, id) =>
@@ -881,6 +986,63 @@ const data = {
         ejercicios: [...d.ejercicios.entries()].map(([nombre, series]) => ({ nombre, series }))
       }))
     }));
+  },
+
+  // Vista detallada para el entrenador: semana -> fecha -> día -> ejercicio -> series.
+  async progresoDe(cuentaId, clienteId) {
+    const series = await data.q(
+      `SELECT s.*, e.nombre AS ejercicio, d.nombre AS dia_nombre, r.nombre AS rutina_nombre
+         FROM series_log s
+         JOIN ejercicios e ON e.id = s.ejercicio_id
+         LEFT JOIN rutina_dias d ON d.id = s.dia_id
+         LEFT JOIN rutinas r ON r.id = s.rutina_id
+        WHERE s.cuenta_id = ? AND s.cliente_id = ?
+        ORDER BY s.fecha DESC, s.numero`, [cuentaId, clienteId]);
+    const obs = await data.q(
+      'SELECT * FROM observaciones WHERE cuenta_id = ? AND cliente_id = ?', [cuentaId, clienteId]);
+    const pesos = await data.q(
+      'SELECT fecha, peso FROM seguimiento WHERE cuenta_id = ? AND cliente_id = ?', [cuentaId, clienteId]);
+
+    const notaDe = (fecha, itemId, ejId) => {
+      const o = obs.find(x => x.fecha === fecha &&
+        (itemId ? x.item_id === itemId : x.ejercicio_id === ejId));
+      return o ? o.texto : null;
+    };
+
+    const semanas = new Map();
+    for (const s of series) {
+      const sem = s.semana || 1;
+      if (!semanas.has(sem)) semanas.set(sem, new Map());
+      const dias = semanas.get(sem);
+      if (!dias.has(s.fecha)) dias.set(s.fecha, {
+        fecha: s.fecha, dia: s.dia_nombre, rutina: s.rutina_nombre,
+        peso_corporal: (pesos.find(p => p.fecha === s.fecha) || {}).peso || null,
+        ejercicios: new Map()
+      });
+      const dia = dias.get(s.fecha);
+      const clave = s.item_id || s.ejercicio_id;
+      if (!dia.ejercicios.has(clave)) dia.ejercicios.set(clave, {
+        nombre: s.ejercicio, observacion: notaDe(s.fecha, s.item_id, s.ejercicio_id), series: []
+      });
+      dia.ejercicios.get(clave).series.push(
+        { id: s.id, numero: s.numero || null, kg: s.kg, reps: s.reps, hora: s.creado });
+    }
+    return [...semanas.entries()].sort((a, b) => b[0] - a[0]).map(([semana, dias]) => ({
+      semana,
+      dias: [...dias.values()].map(d => ({
+        fecha: d.fecha, dia: d.dia, rutina: d.rutina, peso_corporal: d.peso_corporal,
+        ejercicios: [...d.ejercicios.values()]
+      }))
+    }));
+  },
+
+  // Evolución de un ejercicio a lo largo de las semanas (la serie más pesada de cada una).
+  async evolucionEjercicio(cuentaId, clienteId, ejercicioId) {
+    const filas = await data.q(
+      `SELECT semana, MAX(kg) AS kg FROM series_log
+        WHERE cuenta_id = ? AND cliente_id = ? AND ejercicio_id = ?
+        GROUP BY semana ORDER BY semana`, [cuentaId, clienteId, ejercicioId]);
+    return filas.map(f => ({ semana: f.semana || 1, kg: f.kg }));
   },
 
   seguimientoDe: (cuentaId, clienteId) =>
@@ -1168,6 +1330,7 @@ app.get('/api/clientes/:id', auth, ruta(async (req, res) => {
   c.registros = await data.registrosDe(req.cuentaId, c.id);
   c.seguimiento = await data.seguimientoDe(req.cuentaId, c.id);
   c.asistencia = await data.resumenAsistencia(req.cuentaId, c.id, c.inicio);
+  c.indicacion = await data.indicacionActiva(req.cuentaId, c.id) || null;
   res.json(c);
 }));
 
@@ -1431,6 +1594,44 @@ app.post('/api/asistencias', auth, ruta(async (req, res) => {
   res.json(r);
 }));
 
+app.get('/api/clientes/:id/indicaciones', auth, ruta(async (req, res) => {
+  if (!await data.cliente(req.cuentaId, req.params.id))
+    return res.status(404).json({ error: 'No encontramos ese alumno.' });
+  res.json(await data.indicacionesDe(req.cuentaId, req.params.id));
+}));
+
+app.post('/api/clientes/:id/indicaciones', auth, ruta(async (req, res) => {
+  const texto = String((req.body || {}).texto || '').trim();
+  if (!texto) return res.status(400).json({ error: 'Escribí la indicación.' });
+  if (texto.length > 1000) return res.status(400).json({ error: 'La indicación es muy larga.' });
+  const r = await data.crearIndicacion(req.cuentaId, req.params.id, texto);
+  if (!r) return res.status(404).json({ error: 'No encontramos ese alumno.' });
+  res.json(r);
+}));
+
+app.delete('/api/indicaciones/:id', auth, ruta(async (req, res) => {
+  await data.borrarIndicacion(req.cuentaId, req.params.id);
+  res.json({ ok: true });
+}));
+
+app.get('/api/clientes/:id/progreso', auth, ruta(async (req, res) => {
+  if (!limites(req.cuenta.plan).progreso)
+    return res.status(402).json({
+      error: 'El registro detallado de progreso es del plan completo. Ahí ves serie por serie lo que hizo cada alumno.',
+      tope: 'progreso' });
+  if (!await data.cliente(req.cuentaId, req.params.id))
+    return res.status(404).json({ error: 'No encontramos ese alumno.' });
+  res.json(await data.progresoDe(req.cuentaId, req.params.id));
+}));
+
+app.get('/api/clientes/:id/evolucion/:ejercicio', auth, ruta(async (req, res) => {
+  if (!limites(req.cuenta.plan).progreso)
+    return res.status(402).json({ error: 'El registro detallado es del plan completo.', tope: 'progreso' });
+  if (!await data.cliente(req.cuentaId, req.params.id))
+    return res.status(404).json({ error: 'No encontramos ese alumno.' });
+  res.json(await data.evolucionEjercicio(req.cuentaId, req.params.id, req.params.ejercicio));
+}));
+
 app.get('/api/clientes/:id/ultimos', auth, ruta(async (req, res) => {
   if (!await data.cliente(req.cuentaId, req.params.id))
     return res.status(404).json({ error: 'No encontramos ese alumno.' });
@@ -1520,7 +1721,7 @@ app.delete('/api/admin/cuentas/:id', auth, soloAdmin, ruta(async (req, res) => {
     return res.status(400).json({ error: 'No podés eliminar tu propia cuenta de administración.' });
   for (const t of ['seguimiento', 'series_log', 'rutina_items', 'rutina_dias', 'rutinas',
                    'plantilla_items', 'plantilla_dias', 'plantillas', 'turnos', 'clientes',
-                   'ejercicios', 'grupos', 'mensajes', 'asistencias'])
+                   'ejercicios', 'grupos', 'mensajes', 'asistencias', 'observaciones', 'indicaciones'])
     await data.run(`DELETE FROM ${t} WHERE cuenta_id = ?`, [id]);
   await data.run('DELETE FROM cuentas WHERE id = ?', [id]);
   res.json({ ok: true });
@@ -1569,13 +1770,20 @@ app.get('/api/alumno/:token', ruta(async (req, res) => {
   const c = await data.clientePorToken(req.params.token);
   if (!c) return res.status(404).json({ error: 'Este link no es válido. Pedile uno nuevo a tu profe.' });
   const rutinas = await data.rutinasDe(c.cuenta_id, c.id);
+  const semana = semanaDe(c.inicio);
+  const indicacion = await data.indicacionActiva(c.cuenta_id, c.id);
+  const seguimiento = await data.seguimientoDe(c.cuenta_id, c.id);
   res.json({
     nombre: c.nombre,
     inicio: c.inicio,
-    semana: semanaDe(c.inicio),
+    semana,
     rutina: rutinas[0] ? await data.rutinaCompleta(c.cuenta_id, rutinas[0].id) : null,
-    hoy: await data.seriesDeHoy(c.cuenta_id, c.id),
-    seguimiento: await data.seguimientoDe(c.cuenta_id, c.id)
+    // La planilla arranca limpia cada semana, pero lo anterior queda en el historial.
+    series: await data.seriesDeLaSemana(c.cuenta_id, c.id, semana),
+    observaciones: await data.observacionesDeLaSemana(c.cuenta_id, c.id, semana),
+    indicacion: indicacion || null,
+    peso_hoy: (seguimiento.find(x => x.fecha === hoy()) || {}).peso || null,
+    seguimiento
   });
 }));
 
@@ -1584,21 +1792,48 @@ app.post('/api/alumno/:token/series', ruta(async (req, res) => {
   if (!c) return res.status(404).json({ error: 'Este link no es válido.' });
   if (!limitar('serie:' + req.params.token, 300, 60))
     return res.status(429).json({ error: 'Anotaste muchísimas series seguidas. Esperá un momento.' });
-  const { item_id, ejercicio_id, kg, reps } = req.body || {};
+  const { item_id, ejercicio_id, numero, kg, reps } = req.body || {};
   if (!item_id && !ejercicio_id)
     return res.status(400).json({ error: 'No sabemos de qué ejercicio es esta serie.' });
   const pesoOk = numeroEn(kg, ...RANGOS.kg), repsOk = numeroEn(reps, ...RANGOS.reps);
   if (pesoOk === null || repsOk === null)
     return res.status(400).json({ error: 'Revisá el peso y las repeticiones: hay algo raro en esos números.' });
-  await data.registrarSerie(c, { item_id, ejercicio_id, kg: pesoOk, reps: repsOk });
-  res.json({ hoy: await data.seriesDeHoy(c.cuenta_id, c.id) });
+  const nOk = numero == null ? null : numeroEn(numero, 1, 20);
+  if (numero != null && nOk === null)
+    return res.status(400).json({ error: 'Ese número de serie no es válido.' });
+  const r = await data.registrarSerie(c, { item_id, ejercicio_id, numero: nOk, kg: pesoOk, reps: repsOk });
+  if (!r) return res.status(404).json({ error: 'No encontramos ese ejercicio en tu rutina.' });
+  res.json({ series: await data.seriesDeLaSemana(c.cuenta_id, c.id, semanaDe(c.inicio)) });
 }));
 
 app.delete('/api/alumno/:token/series/:id', ruta(async (req, res) => {
   const c = await data.clientePorToken(req.params.token);
   if (!c) return res.status(404).json({ error: 'Este link no es válido.' });
   await data.borrarSerie(c.cuenta_id, c.id, req.params.id);
-  res.json({ hoy: await data.seriesDeHoy(c.cuenta_id, c.id) });
+  res.json({ series: await data.seriesDeLaSemana(c.cuenta_id, c.id, semanaDe(c.inicio)) });
+}));
+
+app.post('/api/alumno/:token/observacion', ruta(async (req, res) => {
+  const c = await data.clientePorToken(req.params.token);
+  if (!c) return res.status(404).json({ error: 'Este link no es válido.' });
+  if (!limitar('obs:' + req.params.token, 120, 60))
+    return res.status(429).json({ error: 'Guardaste muchas observaciones seguidas. Esperá un momento.' });
+  const { item_id, ejercicio_id, texto } = req.body || {};
+  if (!item_id && !ejercicio_id)
+    return res.status(400).json({ error: 'No sabemos de qué ejercicio es esta observación.' });
+  if (String(texto || '').length > 500)
+    return res.status(400).json({ error: 'La observación es muy larga. Contala en menos palabras.' });
+  const r = await data.guardarObservacion(c, { item_id, ejercicio_id, texto });
+  if (!r) return res.status(404).json({ error: 'No encontramos ese ejercicio en tu rutina.' });
+  res.json({ observaciones: await data.observacionesDeLaSemana(c.cuenta_id, c.id, semanaDe(c.inicio)) });
+}));
+
+app.post('/api/alumno/:token/indicacion-leida', ruta(async (req, res) => {
+  const c = await data.clientePorToken(req.params.token);
+  if (!c) return res.status(404).json({ error: 'Este link no es válido.' });
+  if (!await data.marcarLeida(c, (req.body || {}).id))
+    return res.status(404).json({ error: 'No encontramos esa indicación.' });
+  res.json({ ok: true });
 }));
 
 app.post('/api/alumno/:token/seguimiento', ruta(async (req, res) => {
@@ -1610,10 +1845,16 @@ app.post('/api/alumno/:token/seguimiento', ruta(async (req, res) => {
   const pesoOk = numeroEn(peso, ...RANGOS.peso);
   if (pesoOk === null)
     return res.status(400).json({ error: 'El peso tiene que estar entre 20 y 400 kg.' });
-  await data.run(
+  // Uno por día: si vuelve a cargarlo, se corrige en vez de apilarse.
+  const ya = (await data.q('SELECT id FROM seguimiento WHERE cliente_id = ? AND fecha = ?',
+    [c.id, hoy()]))[0];
+  const notaLimpia = String(nota || '').trim().slice(0, 300) || null;
+  if (ya) await data.run('UPDATE seguimiento SET peso = ?, nota = ?, creado = ? WHERE id = ?',
+    [pesoOk, notaLimpia, ahora(), ya.id]);
+  else await data.run(
     'INSERT INTO seguimiento (id, cuenta_id, cliente_id, fecha, peso, nota, semana, creado) VALUES (?,?,?,?,?,?,?,?)',
-    [uid(), c.cuenta_id, c.id, hoy(), pesoOk, String(nota || '').slice(0, 300) || null, semanaDe(c.inicio), ahora()]);
-  res.json({ ok: true });
+    [uid(), c.cuenta_id, c.id, hoy(), pesoOk, notaLimpia, semanaDe(c.inicio), ahora()]);
+  res.json({ ok: true, peso: pesoOk });
 }));
 
 app.get('/api/salud', (req, res) => res.json({ ok: true }));
