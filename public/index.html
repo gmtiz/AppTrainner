@@ -249,6 +249,54 @@
     .hoja-impresa td:nth-child(4){border-bottom:1px solid #999}
   }
 
+  /* planilla de series del alumno */
+  .planilla{margin-top:10px}
+  .serie{display:flex;align-items:center;gap:7px;margin-bottom:7px}
+  .serie .n{
+    font-family:'Chivo',sans-serif;font-weight:700;font-size:14px;color:var(--gris);
+    width:22px;text-align:center;flex:0 0 22px;
+  }
+  .serie input{margin-top:0;text-align:center;font-family:'Chivo',sans-serif;font-weight:700;
+    font-size:16px;padding:9px 6px;min-width:0}
+  .serie .btn.chico{flex:0 0 auto}
+  .serie.hecha{background:var(--cobalto-suave);border-radius:4px;padding:8px 10px}
+  .serie.hecha .dato{font-size:15px;color:var(--tinta)}
+  .serie.hecha .dato b{font-family:'Chivo',sans-serif;font-size:17px}
+  .serie.hecha .mini{margin-left:auto}
+  .agregar-nota{
+    background:none;border:0;color:var(--cobalto);font-family:inherit;font-size:13.5px;
+    font-weight:600;cursor:pointer;padding:4px 0;text-decoration:underline;
+  }
+  .nota-alumno{margin-top:8px;border-left:2px solid var(--borde);padding-left:12px}
+  .nota-alumno label{margin-bottom:8px}
+  .peso-dia .anotar{max-width:none;flex:0 0 auto}
+  .peso-dia .anotar input{width:82px;text-align:center;font-family:'Chivo',sans-serif;
+    font-weight:700;font-size:17px;padding:10px 6px}
+  @media (max-width:400px){
+    .peso-dia .row{flex-wrap:wrap}
+    .peso-dia .anotar{width:100%;margin-top:10px}
+    .peso-dia .anotar input{flex:1;width:auto}
+  }
+
+  /* indicación del entrenador */
+  .indicacion{
+    background:var(--hoja);border:1px solid var(--borde);border-left:4px solid var(--durazno, #D99B12);
+    border-radius:4px;padding:14px 16px;margin-bottom:14px;
+  }
+  .indicacion h3{font-size:15.5px}
+
+  /* progreso detallado */
+  .semanas{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+  .chip{
+    background:var(--hoja);border:1.5px solid var(--borde);border-radius:20px;padding:6px 14px;
+    font-family:'Chivo',sans-serif;font-size:13.5px;font-weight:700;color:var(--gris);cursor:pointer;
+  }
+  .chip.on{background:var(--tinta);border-color:var(--tinta);color:#fff}
+  .tabla.detalle td:first-child{width:52px;font-family:'Chivo',sans-serif;color:var(--gris)}
+  .tabla.detalle b{font-family:'Chivo',sans-serif;font-variant-numeric:tabular-nums}
+  .observacion{margin-top:8px;border-left:2px solid var(--cobalto);padding-left:12px}
+  .observacion b{font-family:'Chivo',sans-serif;font-size:13px;color:var(--cobalto)}
+
   .grafico{margin:12px 0 6px}
   .grafico svg{width:100%;height:70px;display:block}
   .dif{font-family:'Chivo',sans-serif;font-size:15px}
@@ -1025,7 +1073,8 @@ function LineaPeso({ puntos }) {
 }
 
 /* ---------- ficha del alumno ---------- */
-function Ficha({ id, volver, abrirRutina, clientes, plantillas, recargarPlantillas, recargarTurnos, irAAyuda, perfil }) {
+function Ficha({ id, volver, abrirRutina, abrirProgreso, clientes, plantillas, recargarPlantillas,
+                 recargarTurnos, irAAyuda, perfil }) {
   const [c, setC] = useState(null);
   const [turnos, setTurnos] = useState([]);
   const [nueva, setNueva] = useState(null);
@@ -1035,7 +1084,12 @@ function Ficha({ id, volver, abrirRutina, clientes, plantillas, recargarPlantill
   const [turnoForm, setTurnoForm] = useState(null);
   const [tope, setTope] = useState(null);
   const [impresion, setImpresion] = useState(null);
+  const [indic, setIndic] = useState(null);
+  const [verIndic, setVerIndic] = useState(false);
+  const [historial, setHistorial] = useState(null);
   const { avisar, confirmar } = usarAviso();
+
+  useEffect(() => { if (verIndic) verAnteriores(); }, [verIndic]);
 
   const cargar = useCallback(async () => {
     try {
@@ -1108,6 +1162,18 @@ function Ficha({ id, volver, abrirRutina, clientes, plantillas, recargarPlantill
     catch (e) { avisar(e.message, 'mal'); }
   }
 
+  async function guardarIndicacion() {
+    try {
+      await api('/clientes/' + id + '/indicaciones', { method: 'POST', body: { texto: indic.texto } });
+      setIndic(null); cargar(); avisar('Indicación enviada. La va a ver al entrar.');
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function verAnteriores() {
+    try { setHistorial(await api('/clientes/' + id + '/indicaciones')); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+
   async function imprimir(rutinaId) {
     if (perfil && perfil.limites && !perfil.limites.exportar) {
       setTope('Imprimir la rutina (o guardarla en PDF para mandar por WhatsApp) es del plan completo.');
@@ -1167,6 +1233,28 @@ function Ficha({ id, volver, abrirRutina, clientes, plantillas, recargarPlantill
         </div>))}
     </div>
 
+    <div className="card">
+      <div className="row">
+        <h3>Indicación para {c.nombre.split(' ')[0]}</h3>
+        <button className="btn linea chico" onClick={() => setIndic({ texto: '' })}>
+          {c.indicacion ? 'Cambiar' : 'Escribir'}</button>
+      </div>
+      {c.indicacion
+        ? (<div style={{ marginTop: 8 }}>
+            <p>{c.indicacion.texto}</p>
+            <p className="chico" style={{ marginTop: 6 }}>
+              {c.indicacion.leida
+                ? 'La leyó el ' + fmt((c.indicacion.leida || '').slice(0, 10))
+                : 'Todavía no la leyó'}
+              {' · escrita el ' + fmt((c.indicacion.creado || '').slice(0, 10))}
+            </p>
+            <button className="btn linea chico" style={{ marginTop: 8 }} onClick={() => setVerIndic(true)}>
+              Ver anteriores</button>
+          </div>)
+        : <p className="suave" style={{ marginTop: 6 }}>
+            Lo que escribas le aparece al entrar, y queda arriba de su rutina.</p>}
+    </div>
+
     {!!c.asistencia && (c.asistencia.presente + c.asistencia.ausente > 0) &&
       <div className="card">
         <div className="row">
@@ -1217,7 +1305,10 @@ function Ficha({ id, volver, abrirRutina, clientes, plantillas, recargarPlantill
         </div>
       </div>))}
 
-    <h3 style={{ margin: '22px 0 10px' }}>Lo que carga tu alumno</h3>
+    <div className="row" style={{ margin: '22px 0 10px' }}>
+      <h3>Lo que carga tu alumno</h3>
+      <button className="btn chico" onClick={() => abrirProgreso(id)}>Ver detalle</button>
+    </div>
     {!c.registros.length && !c.seguimiento.length &&
       <div className="vacio"><p>Cuando entrene y anote sus series, vas a verlas acá semana por semana.</p></div>}
 
@@ -1294,6 +1385,30 @@ function Ficha({ id, volver, abrirRutina, clientes, plantillas, recargarPlantill
         </div>
       </Modal>}
 
+    {indic &&
+      <Modal titulo="Indicación para el alumno"
+        sub="La ve al entrar a su rutina. Si la cambiás, le vuelve a aparecer." cerrar={() => setIndic(null)}>
+        <label>¿Qué querés decirle?
+          <textarea rows="4" autoFocus maxLength={1000} value={indic.texto}
+            onChange={e => setIndic({ texto: e.target.value })}
+            placeholder="Ej: esta semana bajá el peso en sentadilla y enfocate en la técnica" /></label>
+        <button className="btn" onClick={guardarIndicacion} disabled={!indic.texto.trim()}>Enviar indicación</button>
+      </Modal>}
+
+    {verIndic &&
+      <Modal titulo="Indicaciones anteriores" cerrar={() => { setVerIndic(false); setHistorial(null); }}>
+        {!historial ? <p className="suave">Cargando...</p>
+          : !historial.length ? <p className="suave">Todavía no le escribiste ninguna.</p>
+          : historial.map(x => (
+            <div className="ej" key={x.id}>
+              <p>{x.texto}</p>
+              <p className="chico" style={{ marginTop: 4 }}>
+                {fmt((x.creado || '').slice(0, 10))}
+                {x.leida ? ' · la leyó' : ' · sin leer'}
+              </p>
+            </div>))}
+      </Modal>}
+
     {tope && <Tope texto={tope} cerrar={() => setTope(null)} irAAyuda={irAAyuda} />}
 
     {usarPlantilla &&
@@ -1343,6 +1458,121 @@ function Impresion({ rutina, alumno, cerrar }) {
         </div>))}
       <p className="pie-impreso">AppTrainner</p>
     </div>);
+}
+
+/* Registro detallado: serie por serie, con la observación del alumno. */
+function Progresograma({ clienteId, nombre, volver, ejercicios }) {
+  const [datos, setDatos] = useState(null);
+  const [semana, setSemana] = useState(null);
+  const [evolucion, setEvolucion] = useState(null);
+  const [tope, setTope] = useState(null);
+  const { avisar } = usarAviso();
+
+  const cargar = useCallback(async () => {
+    try { setDatos(await api('/clientes/' + clienteId + '/progreso')); }
+    catch (e) {
+      if (e.status === 402) setTope(e.message); else avisar(e.message, 'mal');
+      setDatos([]);
+    }
+  }, [clienteId, avisar]);
+  useEffect(() => { cargar(); }, [cargar]);
+
+  async function verEvolucion(nombreEj) {
+    const ej = ejercicios.find(e => e.nombre === nombreEj);
+    if (!ej) { avisar('Ese ejercicio ya no está en tu banco', 'mal'); return; }
+    try {
+      const puntos = await api('/clientes/' + clienteId + '/evolucion/' + ej.id);
+      setEvolucion({ nombre: nombreEj, puntos });
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  if (tope) return (<div>
+    <button className="volver" onClick={volver}>← Volver a la ficha</button>
+    <div className="vacio"><p>{tope}</p></div>
+  </div>);
+  if (!datos) return <p className="suave">Cargando...</p>;
+
+  const semanas = datos.map(s => s.semana);
+  const actual = semana != null ? datos.find(s => s.semana === semana) : datos[0];
+
+  return (<div>
+    <button className="volver" onClick={volver}>← Volver a la ficha</button>
+    <h2>Progreso de {nombre}</h2>
+    <p className="suave" style={{ marginBottom: 16 }}>
+      Todo lo que anotó, serie por serie.
+    </p>
+
+    {!datos.length && <div className="vacio"><p>Todavía no registró ningún entrenamiento.</p></div>}
+
+    {!!semanas.length &&
+      <div className="semanas">
+        {semanas.map(n => (
+          <button key={n} className={'chip' + ((actual || {}).semana === n ? ' on' : '')}
+            onClick={() => setSemana(n)}>Semana {n}</button>))}
+      </div>}
+
+    {actual && actual.dias.map((d, i) => (
+      <div className="dia" key={i}>
+        <div className="row">
+          <h3>{d.dia || 'Sin día'}</h3>
+          <span className="chico">{fmt(d.fecha)}</span>
+        </div>
+        <p className="chico">
+          {d.rutina || ''}{d.peso_corporal ? ` · pesó ${d.peso_corporal} kg ese día` : ''}
+        </p>
+
+        {d.ejercicios.map((e, j) => (
+          <div className="ej" key={j}>
+            <div className="row" style={{ alignItems: 'flex-start' }}>
+              <b>{e.nombre}</b>
+              <button className="btn linea chico" onClick={() => verEvolucion(e.nombre)}>Ver evolución</button>
+            </div>
+            <table className="tabla detalle">
+              <thead><tr><th>Serie</th><th>Peso</th><th>Reps</th><th>Hora</th></tr></thead>
+              <tbody>
+                {e.series.map(s => (
+                  <tr key={s.id}>
+                    <td>{s.numero || '—'}</td>
+                    <td><b>{s.kg} kg</b></td>
+                    <td><b>{s.reps}</b></td>
+                    <td className="chico">{hora(s.hora)}</td>
+                  </tr>))}
+              </tbody>
+            </table>
+            {e.observacion &&
+              <div className="observacion"><b>Dijo el alumno</b><p>{e.observacion}</p></div>}
+          </div>))}
+      </div>))}
+
+    {evolucion &&
+      <Modal titulo={evolucion.nombre} sub="El peso más alto de cada semana" cerrar={() => setEvolucion(null)}>
+        {evolucion.puntos.length < 2
+          ? <p className="suave">Todavía no hay suficientes semanas para comparar.</p>
+          : (<div>
+              <div className="grafico">
+                <svg viewBox="0 0 300 80" preserveAspectRatio="none">
+                  {(() => {
+                    const p = evolucion.puntos, kgs = p.map(x => x.kg);
+                    const min = Math.min(...kgs), max = Math.max(...kgs), rango = max - min || 1;
+                    const x = i => (i / (p.length - 1)) * 292 + 4;
+                    const y = v => 70 - ((v - min) / rango) * 56;
+                    return (<g>
+                      <path d={p.map((q, i) => `${i ? 'L' : 'M'}${x(i)},${y(q.kg)}`).join(' ')}
+                        fill="none" stroke="var(--cobalto)" strokeWidth="2"
+                        vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+                      {p.map((q, i) => <circle key={i} cx={x(i)} cy={y(q.kg)} r="3" fill="var(--cobalto)" />)}
+                    </g>);
+                  })()}
+                </svg>
+              </div>
+              <table className="tabla">
+                <thead><tr><th>Semana</th><th>Máximo</th></tr></thead>
+                <tbody>{evolucion.puntos.map(p =>
+                  <tr key={p.semana}><td>Semana {p.semana}</td><td><b>{p.kg} kg</b></td></tr>)}</tbody>
+              </table>
+            </div>)}
+      </Modal>}
+  </div>);
 }
 
 /* ---------- editor de rutina ---------- */
@@ -2216,22 +2446,120 @@ function Consultas() {
 }
 
 /* ---------- vista del alumno ---------- */
+// Cuántas series pidió el profe: "4" -> 4, "3-4" -> 4, texto libre -> 1.
+function cuantasSeries(series) {
+  const nums = String(series || '').match(/\d+/g);
+  if (!nums) return 1;
+  return Math.min(12, Math.max(1, Math.max(...nums.map(Number))));
+}
+
+function FilaSerie({ n, objetivo, guardada, onGuardar, onBorrar }) {
+  const [kg, setKg] = useState(guardada ? String(guardada.kg) : '');
+  const [reps, setReps] = useState(guardada ? String(guardada.reps) : '');
+  const [editando, setEditando] = useState(false);
+
+  useEffect(() => {
+    setKg(guardada ? String(guardada.kg) : '');
+    setReps(guardada ? String(guardada.reps) : '');
+  }, [guardada]);
+
+  if (guardada && !editando)
+    return (
+      <div className="serie hecha">
+        <span className="n">{n}</span>
+        <span className="dato"><b>{guardada.kg}</b> kg</span>
+        <span className="dato"><b>{guardada.reps}</b> reps</span>
+        <button className="mini" title="Corregir" onClick={() => setEditando(true)}>✎</button>
+      </div>);
+
+  return (
+    <div className="serie">
+      <span className="n">{n}</span>
+      <input type="number" inputMode="decimal" placeholder="kg" value={kg}
+        onChange={e => setKg(e.target.value)} aria-label={'Peso de la serie ' + n} />
+      <input type="number" inputMode="numeric" placeholder={objetivo || 'reps'} value={reps}
+        onChange={e => setReps(e.target.value)} aria-label={'Repeticiones de la serie ' + n} />
+      <button className="btn chico" disabled={!kg || !reps}
+        onClick={() => { onGuardar(n, kg, reps); setEditando(false); }}>Guardar</button>
+      {guardada &&
+        <button className="mini" title="Borrar" onClick={() => { onBorrar(guardada.id); setEditando(false); }}>✕</button>}
+    </div>);
+}
+
+function EjercicioAlumno({ item, series, observacion, onGuardar, onBorrar, onObservar }) {
+  const [abierta, setAbierta] = useState(!!observacion);
+  const [nota, setNota] = useState(observacion || '');
+  const [guardandoNota, setGuardandoNota] = useState(false);
+
+  useEffect(() => { setNota(observacion || ''); }, [observacion]);
+
+  const pedidas = cuantasSeries(item.series);
+  const hechas = series.filter(s => s.item_id === item.id);
+  const porNumero = {};
+  hechas.forEach(s => { porNumero[s.numero || 1] = s; });
+  const extras = hechas.filter(s => (s.numero || 1) > pedidas).length;
+  const filas = [];
+  for (let n = 1; n <= pedidas + extras + (hechas.length >= pedidas ? 1 : 0); n++) filas.push(n);
+
+  async function guardarNota() {
+    setGuardandoNota(true);
+    await onObservar(item, nota);
+    setGuardandoNota(false);
+  }
+
+  return (
+    <div className="ej">
+      <div className="ej-top">
+        <div>
+          <b>{item.ejercicio}</b>
+          {item.video_url &&
+            <div><a className="video" href={item.video_url} target="_blank" rel="noopener">Ver el video</a></div>}
+          {item.nota && <div className="chico">{item.nota}</div>}
+        </div>
+        <div className="series">{item.series}×{item.reps}</div>
+      </div>
+
+      <div className="planilla">
+        {filas.map(n => (
+          <FilaSerie key={n} n={n} objetivo={item.reps} guardada={porNumero[n]}
+            onGuardar={onGuardar.bind(null, item)} onBorrar={onBorrar} />))}
+      </div>
+
+      {!abierta
+        ? <button className="agregar-nota" onClick={() => setAbierta(true)}>
+            {observacion ? 'Ver mi observación' : '+ Anotar cómo te fue'}</button>
+        : (<div className="nota-alumno">
+            <label>Tu observación de hoy
+              <textarea rows="2" value={nota} maxLength={500} onChange={e => setNota(e.target.value)}
+                placeholder="Ej: la última serie me costó, sentí molestia en el hombro" /></label>
+            <div className="acciones">
+              <button className="btn chico" onClick={guardarNota} disabled={guardandoNota}>Guardar</button>
+              <button className="btn linea chico" onClick={() => { setNota(observacion || ''); setAbierta(false); }}>
+                Cerrar</button>
+            </div>
+          </div>)}
+    </div>);
+}
+
 function VistaAlumno({ token }) {
   const [d, setD] = useState(null);
   const [error, setError] = useState('');
   const [peso, setPeso] = useState('');
-  const [nota, setNota] = useState('');
-  const [log, setLog] = useState({});
+  const [verIndicacion, setVerIndicacion] = useState(false);
   const { avisar } = usarAviso();
 
   const cargar = useCallback(() => {
     fetch('/api/alumno/' + token).then(r => r.json())
-      .then(x => x.error ? setError(x.error) : setD(x))
+      .then(x => {
+        if (x.error) { setError(x.error); return; }
+        setD(x);
+        if (x.indicacion && !x.indicacion.leida) setVerIndicacion(true);
+        if (x.peso_hoy) setPeso(String(x.peso_hoy));
+      })
       .catch(() => setError('No pudimos cargar tu rutina.'));
   }, [token]);
   useEffect(cargar, [cargar]);
 
-  // Todas las llamadas del alumno pasan por acá: si el servidor rechaza algo, se avisa.
   async function pedir(ruta, opciones = {}) {
     const r = await fetch('/api/alumno/' + token + ruta, Object.assign(
       { headers: { 'Content-Type': 'application/json' } }, opciones));
@@ -2240,43 +2568,82 @@ function VistaAlumno({ token }) {
     return datos;
   }
 
-  async function anotar(item) {
-    const v = log[item.id] || {};
-    if (!v.kg || !v.reps) { avisar('Cargá el peso y las repeticiones', 'mal'); return; }
+  async function guardarSerie(item, numero, kg, reps) {
     try {
       const r = await pedir('/series', { method: 'POST',
-        body: JSON.stringify({ item_id: item.id, kg: v.kg, reps: v.reps }) });
-      setLog({ ...log, [item.id]: {} });
-      if (r.hoy) setD(prev => ({ ...prev, hoy: r.hoy }));
+        body: JSON.stringify({ item_id: item.id, numero, kg, reps }) });
+      setD(prev => ({ ...prev, series: r.series }));
+      avisar('Serie ' + numero + ' anotada');
     } catch (e) { avisar(e.message, 'mal'); }
   }
 
   async function borrarSerie(id) {
     try {
       const r = await pedir('/series/' + id, { method: 'DELETE' });
-      if (r.hoy) setD(prev => ({ ...prev, hoy: r.hoy }));
-      avisar('Serie borrada');
+      setD(prev => ({ ...prev, series: r.series }));
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function observar(item, texto) {
+    try {
+      const r = await pedir('/observacion', { method: 'POST',
+        body: JSON.stringify({ item_id: item.id, texto }) });
+      setD(prev => ({ ...prev, observaciones: r.observaciones }));
+      avisar(texto.trim() ? 'Observación guardada' : 'Observación borrada');
     } catch (e) { avisar(e.message, 'mal'); }
   }
 
   async function guardarPeso() {
     if (!peso) { avisar('Cargá tu peso', 'mal'); return; }
     try {
-      await pedir('/seguimiento', { method: 'POST', body: JSON.stringify({ peso, nota }) });
-      setPeso(''); setNota(''); avisar('Seguimiento guardado'); cargar();
+      await pedir('/seguimiento', { method: 'POST', body: JSON.stringify({ peso }) });
+      avisar('Peso del día guardado'); cargar();
     } catch (e) { avisar(e.message, 'mal'); }
   }
 
-  if (error) return <div className="wrap"><div className="vacio"><p>{error}</p></div></div>;
-  if (!d) return <div className="wrap"><p className="suave">Cargando...</p></div>;
+  async function entendido() {
+    try { await pedir('/indicacion-leida', { method: 'POST', body: JSON.stringify({ id: d.indicacion.id }) }); }
+    catch { /* si falla, la vuelve a ver la próxima vez */ }
+    setVerIndicacion(false);
+    setD(prev => ({ ...prev, indicacion: { ...prev.indicacion, leida: new Date().toISOString() } }));
+  }
 
-  const hoyPorItem = {};
-  (d.hoy || []).forEach(s => { (hoyPorItem[s.item_id] ||= []).push(s); });
+  if (error) return <div className="wrap angosto"><div className="vacio"><p>{error}</p></div></div>;
+  if (!d) return <div className="wrap angosto"><p className="suave">Cargando...</p></div>;
+
+  const obsDe = item => {
+    const o = (d.observaciones || []).find(x => x.item_id === item.id && x.fecha === hoyISO());
+    return o ? o.texto : '';
+  };
 
   return (<div>
     <div className="topbar"><div className="brand"><h1>AppTrainner</h1><span className="hola">tu rutina</span></div></div>
-    <div className="wrap">
+    <div className="wrap angosto">
       <h2>Hola, {(d.nombre || '').split(' ')[0]}</h2>
+
+      {d.indicacion &&
+        <div className="indicacion">
+          <div className="row">
+            <h3>Indicación de tu profe</h3>
+            <span className="chico">{fmt((d.indicacion.creado || '').slice(0, 10))}</span>
+          </div>
+          <p style={{ marginTop: 6 }}>{d.indicacion.texto}</p>
+        </div>}
+
+      <div className="card peso-dia">
+        <div className="row">
+          <div>
+            <h3>Tu peso de hoy</h3>
+            <p className="chico">{d.peso_hoy ? 'Ya lo cargaste. Podés corregirlo.' : 'Cargalo antes de entrenar.'}</p>
+          </div>
+          <div className="anotar" style={{ marginTop: 0 }}>
+            <input type="number" inputMode="decimal" placeholder="kg" value={peso}
+              onChange={e => setPeso(e.target.value)} aria-label="Tu peso corporal de hoy" />
+            <button className="btn chico" onClick={guardarPeso}>Guardar</button>
+          </div>
+        </div>
+      </div>
+
       {!d.rutina
         ? <div className="vacio" style={{ marginTop: 16 }}><p>Tu profe todavía no cargó tu rutina. Escribile y avisale.</p></div>
         : (<div>
@@ -2287,59 +2654,28 @@ function VistaAlumno({ token }) {
                 <h3>{dia.nombre || 'Día ' + (i + 1)}</h3>
                 {dia.dia_sugerido && <span className="globo">{dia.dia_sugerido}</span>}
               </div>
-              {dia.items.map(it => {
-                const hechas = hoyPorItem[it.id] || [];
-                return (
-                  <div className="ej" key={it.id}>
-                    <div className="ej-top">
-                      <div>
-                        <b>{it.ejercicio}</b>
-                        {it.video_url && <div><a className="video" href={it.video_url} target="_blank" rel="noopener">Ver el video</a></div>}
-                        {it.nota && <div className="chico">{it.nota}</div>}
-                      </div>
-                      <div className="series">{it.series}×{it.reps}</div>
-                    </div>
-
-                    {!!hechas.length &&
-                      <div className="hechas">
-                        {hechas.map((s, n) => (
-                          <div className="fila" key={s.id}>
-                            <span>{s.kg} kg × {s.reps}</span>
-                            <span className="chico" style={{ marginLeft: 'auto', marginRight: 8, fontFamily: 'inherit' }}>
-                              {s.creado ? hora(s.creado) : ''}</span>
-                            <button onClick={() => borrarSerie(s.id)}>borrar</button>
-                          </div>))}
-                      </div>}
-
-                    <div className="anotar">
-                      <input type="number" inputMode="decimal" placeholder="kg"
-                        value={(log[it.id] || {}).kg || ''}
-                        onChange={e => setLog({ ...log, [it.id]: { ...log[it.id], kg: e.target.value } })} />
-                      <input type="number" inputMode="numeric" placeholder="reps"
-                        value={(log[it.id] || {}).reps || ''}
-                        onChange={e => setLog({ ...log, [it.id]: { ...log[it.id], reps: e.target.value } })} />
-                      <button className="btn chico" style={{ whiteSpace: 'nowrap' }}
-                        onClick={() => anotar(it)}>Anotar</button>
-                    </div>
-                  </div>);
-              })}
+              {dia.items.map(it => (
+                <EjercicioAlumno key={it.id} item={it} series={d.series || []}
+                  observacion={obsDe(it)} onGuardar={guardarSerie}
+                  onBorrar={borrarSerie} onObservar={observar} />))}
             </div>))}
         </div>)}
 
       <div className="card">
-        <h3>Tu seguimiento</h3>
-        <p className="suave" style={{ marginBottom: 12 }}>Cargá tu peso cada tanto así tu profe ve cómo venís.</p>
-        <div className="dos">
-          <label>Peso corporal (kg)<input type="number" inputMode="decimal" value={peso} onChange={e => setPeso(e.target.value)} /></label>
-          <label>¿Cómo te sentiste?<input value={nota} onChange={e => setNota(e.target.value)} placeholder="Opcional" /></label>
-        </div>
-        <button className="btn naranja" onClick={guardarPeso}>Guardar</button>
+        <h3>Tu evolución</h3>
+        <p className="suave" style={{ marginBottom: 8 }}>El peso que fuiste cargando día a día.</p>
         <LineaPeso puntos={d.seguimiento} />
         {(d.seguimiento || []).slice(0, 6).map(s =>
           <p className="suave" key={s.id} style={{ marginTop: 6 }}>
             <b style={{ fontFamily: "'Chivo',sans-serif" }}>{s.peso} kg</b>{' el ' + fmt(s.fecha)}</p>)}
       </div>
     </div>
+
+    {verIndicacion && d.indicacion &&
+      <Modal titulo="Tu profe te dejó una indicación" cerrar={entendido}>
+        <p style={{ marginBottom: 18 }}>{d.indicacion.texto}</p>
+        <button className="btn" onClick={entendido}>Entendido</button>
+      </Modal>}
   </div>);
 }
 
@@ -2357,6 +2693,7 @@ function App() {
   const [plantillas, setPlantillas] = useState([]);
   const [clienteId, setClienteId] = useState(null);
   const [rutinaId, setRutinaId] = useState(null);
+  const [progresoId, setProgresoId] = useState(null);
   const { avisar } = usarAviso();
 
   const recargarClientes = useCallback(async () => {
@@ -2395,7 +2732,7 @@ function App() {
 
   // Al cambiar de pestaña se refrescan los datos que esa vista necesita.
   function irA(k) {
-    setClienteId(null); setRutinaId(null); setTab(k);
+    setClienteId(null); setRutinaId(null); setProgresoId(null); setTab(k);
     if (k === 'alumnos') recargarClientes();
     if (k === 'ejercicios') recargarEjercicios();
     if (k === 'plantillas') recargarPlantillas();
@@ -2403,7 +2740,7 @@ function App() {
   }
 
   // Las listas aprovechan el ancho; las pantallas de detalle no.
-  const anchoCompleto = !clienteId && !rutinaId &&
+  const anchoCompleto = !clienteId && !rutinaId && !progresoId &&
     ['alumnos', 'ejercicios', 'plantillas', 'admin'].includes(tab);
 
   let contenido;
@@ -2420,13 +2757,18 @@ function App() {
   else if (tab === 'ejercicios') contenido =
     <Ejercicios ejercicios={ejercicios} grupos={grupos} recargar={recargarEjercicios}
       irAAyuda={() => irA('ayuda')} />;
+  else if (progresoId) contenido =
+    <Progresograma clienteId={progresoId} ejercicios={ejercicios}
+      nombre={(clientes.find(c => c.id === progresoId) || {}).nombre || 'tu alumno'}
+      volver={() => setProgresoId(null)} />;
   else if (rutinaId) contenido =
     <Editor id={rutinaId} volver={() => setRutinaId(null)} ejercicios={ejercicios} grupos={grupos}
       recargarEjercicios={recargarEjercicios} />;
   else if (clienteId) contenido =
     <Ficha id={clienteId} clientes={clientes} plantillas={plantillas} recargarPlantillas={recargarPlantillas}
       recargarTurnos={recargarTurnos} irAAyuda={() => irA('ayuda')} perfil={perfil}
-      volver={() => { setClienteId(null); recargarClientes(); }} abrirRutina={setRutinaId} />;
+      volver={() => { setClienteId(null); recargarClientes(); }} abrirRutina={setRutinaId}
+      abrirProgreso={setProgresoId} />;
   else contenido = <Alumnos clientes={clientes} recargar={recargarClientes} abrir={setClienteId}
     recargarTurnos={recargarTurnos} irAAyuda={() => irA('ayuda')} />;
 
@@ -2443,7 +2785,7 @@ function App() {
       </div>
     </div>
     <div className={'wrap' + (anchoCompleto ? '' : ' angosto')}>
-      <Escudo clave={tab + (clienteId || '') + (rutinaId || '')}>{contenido}</Escudo>
+      <Escudo clave={tab + (clienteId || '') + (rutinaId || '') + (progresoId || '')}>{contenido}</Escudo>
     </div>
   </div>);
 }
