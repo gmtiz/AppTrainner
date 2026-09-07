@@ -53,7 +53,14 @@
     font-size:13.5px;font-weight:600;cursor:pointer;padding:6px 2px;border-bottom:1.5px solid transparent;
   }
   .brand button:hover{color:#fff;border-bottom-color:#8FA6BA}
-  .tabs{display:flex;gap:20px;overflow-x:auto}
+  .tabs{display:flex;gap:20px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .tabs::-webkit-scrollbar{display:none}
+  @media (max-width:560px){
+    .tabs{gap:16px}
+    .tab{font-size:14.5px}
+    /* Un degradado avisa que hay más pestañas hacia la derecha. */
+    .topbar{position:sticky;background-image:linear-gradient(90deg,transparent 88%,rgba(15,34,49,.9) 100%)}
+  }
   .tab{
     flex:0 0 auto;background:none;border:0;color:#8FA6BA;font-family:'Chivo',sans-serif;
     font-size:15px;font-weight:600;padding:6px 0 11px;cursor:pointer;
@@ -62,6 +69,16 @@
   .tab.on{color:#fff;border-bottom-color:#fff}
 
   .wrap{max-width:720px;margin:0 auto;padding:22px 16px 72px}
+  /* En pantallas grandes las listas se reparten en columnas en vez de quedar
+     como una cinta angosta; las vistas de detalle se mantienen legibles. */
+  @media (min-width:1000px){
+    .wrap{max-width:1080px;padding:26px 24px 80px}
+    .wrap.angosto{max-width:780px}
+    .columnas{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;align-items:start}
+    .columnas .card,.columnas .dia{margin-bottom:0}
+    .ancho-total{grid-column:1/-1}
+  }
+  @media (min-width:1400px){ .wrap{max-width:1240px} }
 
   /* ---------- hojas ---------- */
   .card{
@@ -210,6 +227,43 @@
     border-radius:0;background:none;color:var(--gris);width:auto;
   }
   .acciones{display:flex;flex-wrap:wrap;gap:6px}
+  .barra-sup{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+  /* ---------- impresión ---------- */
+  .hoja-impresa{background:var(--hoja);border:1px solid var(--borde);border-radius:4px;padding:24px}
+  .hoja-impresa h1{font-size:26px;margin-bottom:2px}
+  .hoja-impresa .sub-impresa{color:var(--gris);margin-bottom:18px}
+  .dia-impreso{margin-bottom:22px;break-inside:avoid}
+  .dia-impreso h2{font-size:17px;margin-bottom:6px;padding-bottom:5px;border-bottom:2px solid var(--tinta)}
+  .hoja-impresa table{width:100%;border-collapse:collapse;font-size:14px}
+  .hoja-impresa th{text-align:left;font-size:11.5px;color:var(--gris);padding:5px 6px;font-weight:600}
+  .hoja-impresa td{padding:8px 6px;border-bottom:1px solid var(--borde)}
+  .hoja-impresa td:nth-child(2),.hoja-impresa td:nth-child(3){width:56px;font-family:'Chivo',sans-serif}
+  .hoja-impresa td:nth-child(4){width:80px;border-bottom:1px solid var(--tinta)}
+  .nota-impresa{font-size:12.5px;color:var(--gris)}
+  .pie-impreso{margin-top:20px;font-size:11.5px;color:var(--gris);text-align:right}
+  @media print{
+    body{background:#fff !important}
+    .topbar,.no-imprimir,.mensajes,.volver{display:none !important}
+    .wrap{max-width:none;padding:0}
+    .hoja-impresa{border:0;padding:0}
+    .hoja-impresa td:nth-child(4){border-bottom:1px solid #999}
+  }
+
+  .grafico{margin:12px 0 6px}
+  .grafico svg{width:100%;height:70px;display:block}
+  .dif{font-family:'Chivo',sans-serif;font-size:15px}
+  .dif.baja{color:var(--cobalto)}
+  .dif.sube{color:var(--gris)}
+  .ultimo{font-size:12.5px;color:var(--gris);margin-top:3px}
+  .ultimo b{font-family:'Chivo',sans-serif;color:var(--cobalto)}
+  .asist{
+    background:var(--hoja);border:1.5px solid var(--borde);border-radius:4px;padding:8px 13px;
+    font-family:'Chivo',sans-serif;font-size:13.5px;font-weight:700;color:var(--gris);cursor:pointer;
+  }
+  .asist:hover{border-color:var(--tinta);color:var(--tinta)}
+  .asist.vino{background:var(--cobalto-suave);border-color:var(--cobalto);color:var(--cobalto)}
+  .asist.falto{background:var(--carmin-suave);border-color:#EBC8CD;color:var(--carmin)}
+  .buscador{margin-top:0;flex:1;min-width:180px;max-width:280px;padding:8px 12px;font-size:14.5px}
   .uso{margin-bottom:12px}
   .uso .row{margin-bottom:5px;font-size:14.5px}
   .uso b{font-family:'Chivo',sans-serif;font-variant-numeric:tabular-nums}
@@ -537,6 +591,7 @@ function Ejercicios({ ejercicios, grupos, recargar, irAAyuda }) {
   const [form, setForm] = useState(null);
   const [verGrupos, setVerGrupos] = useState(false);
   const [tope, setTope] = useState(null);
+  const [busq, setBusq] = useState('');
   const { avisar, confirmar } = usarAviso();
 
   async function guardar() {
@@ -569,7 +624,10 @@ function Ejercicios({ ejercicios, grupos, recargar, irAAyuda }) {
   }
 
   const porGrupo = {};
-  ejercicios.forEach(e => { (porGrupo[e.grupo || 'Sin grupo'] ||= []).push(e); });
+  const filtrados = busq.trim()
+    ? ejercicios.filter(e => e.nombre.toLowerCase().includes(busq.trim().toLowerCase()))
+    : ejercicios;
+  filtrados.forEach(e => { (porGrupo[e.grupo || 'Sin grupo'] ||= []).push(e); });
 
   return (<div>
     <div className="row" style={{ marginBottom: 8 }}>
@@ -579,13 +637,19 @@ function Ejercicios({ ejercicios, grupos, recargar, irAAyuda }) {
     <p className="suave" style={{ marginBottom: 12 }}>
       {ejercicios.length} ejercicio{ejercicios.length === 1 ? '' : 's'} cargados. El video se pega una sola vez.
     </p>
-    <button className="btn linea chico" style={{ marginBottom: 16 }} onClick={() => setVerGrupos(true)}>
-      Grupos musculares ({grupos.length})</button>
+    <div className="barra-sup">
+      <button className="btn linea chico" onClick={() => setVerGrupos(true)}>
+        Grupos musculares ({grupos.length})</button>
+      {ejercicios.length > 8 &&
+        <input className="buscador" value={busq} onChange={e => setBusq(e.target.value)}
+          placeholder="Buscar ejercicio" />}
+    </div>
 
     {!ejercicios.length &&
       <div className="vacio"><p>Acá se guardan tus ejercicios con su video. Cargás cada uno una sola vez.</p>
         <button className="btn chico" onClick={() => setForm({ nombre: '', grupo: '', video_url: '' })}>Cargar el primero</button></div>}
 
+    <div className="columnas">
     {Object.keys(porGrupo).sort().map(g => (
       <div className="dia" key={g}>
         <div className="row" style={{ marginBottom: 4 }}>
@@ -608,6 +672,7 @@ function Ejercicios({ ejercicios, grupos, recargar, irAAyuda }) {
             </div>
           </div>))}
       </div>))}
+    </div>
 
     {form &&
       <Modal titulo={form.id ? 'Editar ejercicio' : 'Nuevo ejercicio'}
@@ -690,6 +755,7 @@ function Alumnos({ clientes, recargar, abrir, recargarTurnos, irAAyuda }) {
   const [form, setForm] = useState(null);
   const [importar, setImportar] = useState(false);
   const [tope, setTope] = useState(null);
+  const [busq, setBusq] = useState('');
   const { avisar } = usarAviso();
 
   async function crear(f) {
@@ -703,6 +769,9 @@ function Alumnos({ clientes, recargar, abrir, recargarTurnos, irAAyuda }) {
   }
 
   const porRenovar = clientes.filter(c => { const d = diasRestantes(c.inicio); return d !== null && d <= 7; });
+  const visibles = busq.trim()
+    ? clientes.filter(c => c.nombre.toLowerCase().includes(busq.trim().toLowerCase()))
+    : clientes;
   const nuevo = { nombre: '', contacto: '', inicio: hoyISO(), peso_inicial: '', altura: '', notas: '',
                   turnos: [{ dia_semana: 1, hora: '09:00', duracion: 60 }] };
 
@@ -724,18 +793,26 @@ function Alumnos({ clientes, recargar, abrir, recargarTurnos, irAAyuda }) {
       <h2>Tus alumnos</h2>
       <button className="btn chico" onClick={() => setForm(nuevo)}>Sumar alumno</button>
     </div>
-    <button className="btn linea chico" style={{ marginBottom: 16 }} onClick={() => setImportar(true)}>
-      Importar datos desde Excel</button>
+    <div className="barra-sup">
+      <button className="btn linea chico" onClick={() => setImportar(true)}>Importar datos desde Excel</button>
+      {clientes.length > 5 &&
+        <input className="buscador" value={busq} onChange={e => setBusq(e.target.value)}
+          placeholder="Buscar alumno" />}
+    </div>
 
     {!clientes.length &&
       <div className="vacio"><p>Sumá tu primer alumno o traé todos de una con un Excel.</p>
         <button className="btn chico" onClick={() => setForm(nuevo)}>Sumar el primero</button></div>}
 
-    {clientes.map(c => (
-      <div className="card tap" key={c.id} onClick={() => abrir(c.id)}>
-        <h3>{c.nombre}</h3>
-        <Progreso inicio={c.inicio} />
-      </div>))}
+    <div className="columnas">
+      {visibles.map(c => (
+        <div className="card tap" key={c.id} onClick={() => abrir(c.id)}>
+          <h3>{c.nombre}</h3>
+          <Progreso inicio={c.inicio} />
+        </div>))}
+    </div>
+    {!visibles.length && !!clientes.length &&
+      <p className="suave">Ningún alumno coincide con "{busq}".</p>}
 
     {form && <FormAlumno inicial={form} conTurnos onGuardar={crear} cerrar={() => setForm(null)} />}
     {importar && <ImportarTodo cerrar={() => setImportar(false)} irAAyuda={irAAyuda}
@@ -918,8 +995,37 @@ function ImportarTodo({ cerrar, alTerminar, irAAyuda }) {
     </Modal>);
 }
 
+/* Línea de peso corporal: se dibuja con los puntos que cargó el alumno. */
+function LineaPeso({ puntos }) {
+  if (!puntos || puntos.length < 2) return null;
+  const datos = [...puntos].reverse();
+  const pesos = datos.map(p => p.peso);
+  const min = Math.min(...pesos), max = Math.max(...pesos);
+  const rango = max - min || 1;
+  const an = 300, al = 70;
+  const x = i => (i / (datos.length - 1)) * (an - 8) + 4;
+  const y = p => al - 10 - ((p - min) / rango) * (al - 24);
+  const linea = datos.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.peso).toFixed(1)}`).join(' ');
+  const dif = (datos[datos.length - 1].peso - datos[0].peso).toFixed(1);
+
+  return (
+    <div className="grafico">
+      <svg viewBox={`0 0 ${an} ${al}`} preserveAspectRatio="none" role="img"
+        aria-label={`Evolución del peso, de ${datos[0].peso} a ${datos[datos.length - 1].peso} kilos`}>
+        <path d={linea} fill="none" stroke="var(--cobalto)" strokeWidth="2"
+          strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+        {datos.map((p, i) => <circle key={i} cx={x(i)} cy={y(p.peso)} r="2.5" fill="var(--cobalto)" />)}
+      </svg>
+      <div className="row">
+        <span className="chico">{datos[0].peso} kg el {fmt(datos[0].fecha)}</span>
+        <b className={'dif ' + (dif > 0 ? 'sube' : dif < 0 ? 'baja' : '')}>
+          {dif > 0 ? '+' : ''}{dif} kg</b>
+      </div>
+    </div>);
+}
+
 /* ---------- ficha del alumno ---------- */
-function Ficha({ id, volver, abrirRutina, clientes, plantillas, recargarPlantillas, recargarTurnos, irAAyuda }) {
+function Ficha({ id, volver, abrirRutina, clientes, plantillas, recargarPlantillas, recargarTurnos, irAAyuda, perfil }) {
   const [c, setC] = useState(null);
   const [turnos, setTurnos] = useState([]);
   const [nueva, setNueva] = useState(null);
@@ -928,6 +1034,7 @@ function Ficha({ id, volver, abrirRutina, clientes, plantillas, recargarPlantill
   const [editar, setEditar] = useState(null);
   const [turnoForm, setTurnoForm] = useState(null);
   const [tope, setTope] = useState(null);
+  const [impresion, setImpresion] = useState(null);
   const { avisar, confirmar } = usarAviso();
 
   const cargar = useCallback(async () => {
@@ -939,6 +1046,7 @@ function Ficha({ id, volver, abrirRutina, clientes, plantillas, recargarPlantill
   useEffect(() => { cargar(); }, [cargar]);
 
   if (!c) return <p className="suave">Cargando...</p>;
+  if (impresion) return <Impresion rutina={impresion} alumno={c.nombre} cerrar={() => setImpresion(null)} />;
   const link = location.origin + '/r/' + c.token;
 
   async function crearRutina() {
@@ -1000,6 +1108,22 @@ function Ficha({ id, volver, abrirRutina, clientes, plantillas, recargarPlantill
     catch (e) { avisar(e.message, 'mal'); }
   }
 
+  async function imprimir(rutinaId) {
+    if (perfil && perfil.limites && !perfil.limites.exportar) {
+      setTope('Imprimir la rutina (o guardarla en PDF para mandar por WhatsApp) es del plan completo.');
+      return;
+    }
+    try { setImpresion(await api('/rutinas/' + rutinaId)); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function regenerarLink() {
+    if (!await confirmar('¿Generamos un link nuevo?',
+      'El que tiene ahora deja de funcionar y vas a tener que mandarle el nuevo.', 'Sí, generar')) return;
+    try { await api('/clientes/' + id + '/link', { method: 'POST' }); cargar(); avisar('Link nuevo generado'); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+
   async function borrarAlumno() {
     if (!await confirmar('¿Eliminamos a ' + c.nombre + '?', 'Se borran sus rutinas, turnos y seguimiento.', 'Sí, eliminar')) return;
     try { await api('/clientes/' + id, { method: 'DELETE' }); await recargarTurnos(); avisar('Alumno eliminado'); volver(); }
@@ -1043,6 +1167,18 @@ function Ficha({ id, volver, abrirRutina, clientes, plantillas, recargarPlantill
         </div>))}
     </div>
 
+    {!!c.asistencia && (c.asistencia.presente + c.asistencia.ausente > 0) &&
+      <div className="card">
+        <div className="row">
+          <h3>Asistencia del plan</h3>
+          <span className="globo ok">{c.asistencia.presente} de {c.asistencia.presente + c.asistencia.ausente}</span>
+        </div>
+        <p className="suave" style={{ marginTop: 4 }}>
+          Vino {c.asistencia.presente} {c.asistencia.presente === 1 ? 'vez' : 'veces'}
+          {c.asistencia.ausente ? ` y faltó ${c.asistencia.ausente}` : ', sin faltas'}.
+        </p>
+      </div>}
+
     <div className="card">
       <h3>Su link personal</h3>
       <p className="suave" style={{ margin: '4px 0 12px' }}>Entra sin contraseña, desde el celular.</p>
@@ -1055,6 +1191,10 @@ function Ficha({ id, volver, abrirRutina, clientes, plantillas, recargarPlantill
           href={'https://wa.me/?text=' + encodeURIComponent('Hola ' + c.nombre + ', acá tenés tu rutina: ' + link)}
           target="_blank" rel="noopener">Mandar por WhatsApp</a>
       </div>
+      <button className="btn linea chico" style={{ marginTop: 8 }} onClick={regenerarLink}>
+        Generar un link nuevo</button>
+      <p className="chico" style={{ marginTop: 6 }}>
+        Si el link se compartió de más, generá uno nuevo. El anterior deja de funcionar.</p>
     </div>
 
     <div className="row" style={{ margin: '20px 0 12px' }}>
@@ -1070,6 +1210,7 @@ function Ficha({ id, volver, abrirRutina, clientes, plantillas, recargarPlantill
         <div className="row"><h3>{r.nombre}</h3><span className="chico">Desde el {fmt(r.inicio)}</span></div>
         <div className="acciones" style={{ marginTop: 12 }}>
           <button className="btn linea chico" onClick={() => abrirRutina(r.id)}>Editar</button>
+          <button className="btn linea chico" onClick={() => imprimir(r.id)}>Imprimir</button>
           <button className="btn linea chico" onClick={() => setDuplicar(r.id)}>Copiar a otro</button>
           <button className="btn linea chico" onClick={() => guardarPlantilla(r.id, r.nombre)}>Guardar plantilla</button>
           <button className="btn riesgo chico" onClick={() => borrarRutina(r)}>Eliminar</button>
@@ -1099,6 +1240,7 @@ function Ficha({ id, volver, abrirRutina, clientes, plantillas, recargarPlantill
     {!!c.seguimiento.length &&
       <div className="card">
         <h3>Peso corporal</h3>
+        <LineaPeso puntos={c.seguimiento} />
         {c.seguimiento.map(x =>
           <p className="suave" key={x.id} style={{ marginTop: 6 }}>
             <b style={{ fontFamily: "'Chivo',sans-serif" }}>{x.peso} kg</b>
@@ -1166,9 +1308,47 @@ function Ficha({ id, volver, abrirRutina, clientes, plantillas, recargarPlantill
   </div>);
 }
 
+/* Vista de impresión: el navegador la manda a papel o la guarda como PDF.
+   Es el gancho para los entrenadores que hoy entregan la rutina impresa. */
+function Impresion({ rutina, alumno, cerrar }) {
+  // Se abre el diálogo de impresión solo, pero la vista queda: si el entrenador
+  // cancela sin querer, no pierde la pantalla y puede volver a intentar.
+  useEffect(() => {
+    const t = setTimeout(() => window.print(), 300);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <div className="hoja-impresa">
+      <div className="no-imprimir" style={{ marginBottom: 16 }}>
+        <button className="btn" onClick={() => window.print()}>Imprimir o guardar en PDF</button>
+        <button className="btn linea" style={{ marginTop: 8 }} onClick={cerrar}>Volver</button>
+      </div>
+      <h1>{alumno}</h1>
+      <p className="sub-impresa">{rutina.nombre}</p>
+      {rutina.dias.map((d, i) => (
+        <div className="dia-impreso" key={d.id}>
+          <h2>{d.nombre || 'Día ' + (i + 1)}{d.dia_sugerido ? ' — ' + d.dia_sugerido : ''}</h2>
+          <table>
+            <thead><tr><th>Ejercicio</th><th>Series</th><th>Reps</th><th>Peso</th><th>Notas</th></tr></thead>
+            <tbody>
+              {d.items.map(it => (
+                <tr key={it.id}>
+                  <td><b>{it.ejercicio}</b></td>
+                  <td>{it.series}</td><td>{it.reps}</td><td></td>
+                  <td className="nota-impresa">{it.nota || ''}</td>
+                </tr>))}
+            </tbody>
+          </table>
+        </div>))}
+      <p className="pie-impreso">AppTrainner</p>
+    </div>);
+}
+
 /* ---------- editor de rutina ---------- */
 function Editor({ id, volver, ejercicios, grupos, recargarEjercicios }) {
   const [r, setR] = useState(null);
+  const [ultimos, setUltimos] = useState({});
   const [busq, setBusq] = useState({});
   const [form, setForm] = useState(null);
   const [diaForm, setDiaForm] = useState(null);
@@ -1176,7 +1356,12 @@ function Editor({ id, volver, ejercicios, grupos, recargarEjercicios }) {
   const { avisar, confirmar } = usarAviso();
 
   const cargar = useCallback(async () => {
-    try { setR(await api('/rutinas/' + id)); } catch (e) { avisar(e.message, 'mal'); }
+    try {
+      const rutina = await api('/rutinas/' + id);
+      setR(rutina);
+      // Lo último que levantó el alumno, para armar la progresión sin buscar en el historial.
+      setUltimos(await api('/clientes/' + rutina.cliente_id + '/ultimos'));
+    } catch (e) { avisar(e.message, 'mal'); }
   }, [id, avisar]);
   useEffect(() => { cargar(); }, [cargar]);
   if (!r) return <p className="suave">Cargando...</p>;
@@ -1272,6 +1457,11 @@ function Editor({ id, volver, ejercicios, grupos, recargarEjercicios }) {
                       ? <div><a className="video" href={it.video_url} target="_blank" rel="noopener">Ver el video</a></div>
                       : <div className="chico">Sin video</div>}
                     {it.nota && <div className="chico">{it.nota}</div>}
+                    {ultimos[it.ejercicio_id] &&
+                      <div className="ultimo">
+                        Última vez: <b>{ultimos[it.ejercicio_id].kg} kg × {ultimos[it.ejercicio_id].reps}</b>
+                        {' el ' + fmt(ultimos[it.ejercicio_id].fecha)}
+                      </div>}
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
@@ -1281,7 +1471,7 @@ function Editor({ id, volver, ejercicios, grupos, recargarEjercicios }) {
                     <button className="mini" onClick={() => reordenar(d, idx, idx + 1)} disabled={idx === d.items.length - 1} title="Bajar">↓</button>
                     <button className="btn linea chico" style={{ padding: '5px 10px', fontSize: 12.5 }}
                       onClick={() => setForm({ item_id: it.id, titulo: it.ejercicio, series: it.series || '',
-                        reps: it.reps || '', nota: it.nota || '' })}>Cambiar</button>
+                        reps: it.reps || '', nota: it.nota || '', ultimo: ultimos[it.ejercicio_id] })}>Cambiar</button>
                   </div>
                 </div>
               </div>
@@ -1308,7 +1498,10 @@ function Editor({ id, volver, ejercicios, grupos, recargarEjercicios }) {
       Agregar otro día</button>
 
     {form &&
-      <Modal titulo={form.titulo} sub={form.item_id ? 'Cambiá lo que necesites.' : '¿Cómo lo hace tu alumno?'}
+      <Modal titulo={form.titulo}
+        sub={form.ultimo
+          ? `La última vez levantó ${form.ultimo.kg} kg × ${form.ultimo.reps}`
+          : (form.item_id ? 'Cambiá lo que necesites.' : '¿Cómo lo hace tu alumno?')}
         cerrar={() => setForm(null)}>
         {form.ejercicio_id === null && !form.item_id && (<div>
           <label>Link del video<input value={form.video} placeholder="Opcional"
@@ -1351,10 +1544,26 @@ function Agenda({ clientes, recargarTurnos }) {
   const [form, setForm] = useState(null);
   const { avisar, confirmar } = usarAviso();
 
+  const [asistencias, setAsistencias] = useState({});
+
   const cargar = useCallback(async () => {
-    try { setDia(await api('/turnos?fecha=' + fecha)); } catch (e) { avisar(e.message, 'mal'); }
+    try {
+      setDia(await api('/turnos?fecha=' + fecha));
+      const marcas = await api('/asistencias?fecha=' + fecha);
+      const mapa = {};
+      marcas.forEach(m => { mapa[m.cliente_id] = m.estado; });
+      setAsistencias(mapa);
+    } catch (e) { avisar(e.message, 'mal'); }
   }, [fecha, avisar]);
   useEffect(() => { cargar(); }, [cargar]);
+
+  // Un toque marca presente, otro ausente, otro lo deja sin marcar.
+  async function marcar(t, estado) {
+    const nuevo = asistencias[t.cliente_id] === estado ? null : estado;
+    setAsistencias({ ...asistencias, [t.cliente_id]: nuevo });
+    try { await api('/asistencias', { method: 'POST', body: { cliente_id: t.cliente_id, fecha, estado: nuevo } }); }
+    catch (e) { avisar(e.message, 'mal'); cargar(); }
+  }
 
   // Se puede navegar un mes para atrás y uno para adelante.
   const limite = dias => {
@@ -1421,8 +1630,8 @@ function Agenda({ clientes, recargarTurnos }) {
 
     {!!choques.length &&
       <div className="recordatorio" style={{ borderLeftColor: 'var(--coral)' }}>
-        <h3>Tenés horarios superpuestos este día</h3>
-        <p className="suave">Fijate los turnos marcados abajo.</p>
+        <h3>Se te juntan alumnos este día</h3>
+        <p className="suave">Hay horarios con más gente de la que atendés a la vez. Podés ajustar ese número en Ayuda.</p>
       </div>}
 
     {!turnos.length && !!clientes.length &&
@@ -1440,6 +1649,10 @@ function Agenda({ clientes, recargarTurnos }) {
           {t.choca && <span className="globo alerta" style={{ marginTop: 6 }}>Se pisa con otro turno</span>}
         </div>
         <div className="acciones">
+          <button className={'asist' + (asistencias[t.cliente_id] === 'presente' ? ' vino' : '')}
+            onClick={() => marcar(t, 'presente')}>Vino</button>
+          <button className={'asist' + (asistencias[t.cliente_id] === 'ausente' ? ' falto' : '')}
+            onClick={() => marcar(t, 'ausente')}>Faltó</button>
           <button className="btn linea chico" onClick={() => setForm(t)}>Editar</button>
           <button className="btn riesgo chico" onClick={() => borrar(t)}>Quitar</button>
         </div>
@@ -1574,7 +1787,7 @@ function EditorPlantilla({ id, volver, ejercicios, grupos, recargarEjercicios, r
                       disabled={idx === d.items.length - 1}>↓</button>
                     <button className="btn linea chico" style={{ padding: '5px 10px', fontSize: 12.5 }}
                       onClick={() => setForm({ item_id: it.id, titulo: it.ejercicio, series: it.series || '',
-                        reps: it.reps || '', nota: it.nota || '' })}>Cambiar</button>
+                        reps: it.reps || '', nota: it.nota || '', ultimo: ultimos[it.ejercicio_id] })}>Cambiar</button>
                   </div>
                 </div>
               </div>
@@ -1680,6 +1893,7 @@ function Plantillas({ plantillas, recargar, clientes, ejercicios, grupos, recarg
       <div className="vacio"><p>Una plantilla es una rutina base que después asignás a quien quieras.</p>
         <button className="btn chico" onClick={() => setNueva({ nombre: '', cantidad: 3 })}>Crear la primera</button></div>}
 
+    <div className="columnas">
     {plantillas.map(p => (
       <div className="card" key={p.id}>
         <div className="row"><h3>{p.nombre}</h3><span className="globo">{p.dias} días</span></div>
@@ -1689,6 +1903,7 @@ function Plantillas({ plantillas, recargar, clientes, ejercicios, grupos, recarg
           <button className="btn riesgo chico" onClick={() => borrar(p)}>Eliminar</button>
         </div>
       </div>))}
+    </div>
 
     {nueva &&
       <Modal titulo="Nueva plantilla" sub="Después le cargás los ejercicios." cerrar={() => setNueva(null)}>
@@ -1748,7 +1963,23 @@ function Ayuda({ perfil, recargarPerfil }) {
   const [mensajes, setMensajes] = useState([]);
   const [tipo, setTipo] = useState('pregunta');
   const [texto, setTexto] = useState('');
+  const [claves, setClaves] = useState(null);
   const { avisar } = usarAviso();
+
+  async function guardarCapacidad(capacidad) {
+    try { await api('/perfil', { method: 'PATCH', body: { capacidad } }); await recargarPerfil();
+      avisar('Listo, ajustamos los avisos de la agenda'); }
+    catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  async function cambiarClave() {
+    try {
+      const r = await api('/cambiar-clave', { method: 'POST', body: claves });
+      // El servidor devuelve una sesión nueva: sin esto quedaríamos afuera al instante.
+      if (r.token) { sesion = r.token; localStorage.setItem(CLAVE, r.token); }
+      setClaves(null); avisar('Contraseña cambiada');
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
 
   const cargar = useCallback(async () => {
     try { setMensajes(await api('/mensajes')); } catch (e) { avisar(e.message, 'mal'); }
@@ -1804,6 +2035,37 @@ function Ayuda({ perfil, recargarPerfil }) {
           Quiero pasar al plan completo</button>
       </div>}
 
+    <div className="card">
+      <div className="row">
+        <h3>¿A cuántos alumnos atendés a la vez?</h3>
+        <select value={perfil.capacidad || 1} style={{ marginTop: 0, width: 90 }}
+          onChange={e => guardarCapacidad(+e.target.value)}>
+          {[1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20].map(n => <option key={n} value={n}>{n}</option>)}
+        </select>
+      </div>
+      <p className="suave" style={{ marginTop: 6 }}>
+        La agenda solo te avisa de horarios superpuestos cuando pasás de ese número.
+      </p>
+    </div>
+
+    <div className="card">
+      <div className="row">
+        <h3>Tu contraseña</h3>
+        <button className="btn linea chico" onClick={() => setClaves(claves ? null : { actual: '', nueva: '' })}>
+          {claves ? 'Cancelar' : 'Cambiar'}</button>
+      </div>
+      {claves && (<div style={{ marginTop: 14 }}>
+        <label>Contraseña actual<input type="password" value={claves.actual}
+          onChange={e => setClaves({ ...claves, actual: e.target.value })} /></label>
+        <label>Contraseña nueva<input type="password" value={claves.nueva}
+          onChange={e => setClaves({ ...claves, nueva: e.target.value })} />
+          <span className="chico">Mínimo 8 caracteres. Se cierran las sesiones abiertas en otros dispositivos.</span>
+        </label>
+        <button className="btn" onClick={cambiarClave}
+          disabled={!claves.actual || claves.nueva.length < 8}>Guardar contraseña</button>
+      </div>)}
+    </div>
+
     <h2 style={{ marginTop: 26 }}>Consultas y sugerencias</h2>
     <p className="suave" style={{ marginBottom: 14 }}>
       Contanos qué te falta o qué no funciona. Te respondemos por acá.
@@ -1837,7 +2099,7 @@ function Ayuda({ perfil, recargarPerfil }) {
 }
 
 /* ---------- administración ---------- */
-function Admin() {
+function Admin({ perfil }) {
   const [cuentas, setCuentas] = useState(null);
   const { avisar, confirmar } = usarAviso();
 
@@ -1864,6 +2126,7 @@ function Admin() {
     <p className="suave" style={{ marginBottom: 18 }}>
       {cuentas.length} cuenta{cuentas.length === 1 ? '' : 's'} en el sistema. Desde acá las activás, pausás o eliminás.
     </p>
+    <div className="columnas">
     {cuentas.map(c => (
       <div className="card" key={c.id}>
         <div className="row">
@@ -1871,6 +2134,8 @@ function Admin() {
             <h3>{c.nombre} {c.rol === 'admin' && <span className="globo">admin</span>}</h3>
             <p className="suave">{c.email}</p>
             <p className="chico">{c.alumnos} alumnos, {c.ejercicios} ejercicios. Desde {fmt(c.creada)}</p>
+            {!!c.consultas && <span className="globo aviso" style={{ marginTop: 4 }}>
+              {c.consultas} consulta{c.consultas === 1 ? '' : 's'} sin responder</span>}
           </div>
           <span className={'globo ' + (c.plan === 'activo' ? 'ok' : c.plan === 'pausado' ? 'aviso' : '')}>{c.plan}</span>
         </div>
@@ -1883,6 +2148,7 @@ function Admin() {
           {c.rol !== 'admin' && <button className="btn riesgo chico" onClick={() => borrar(c)}>Eliminar cuenta</button>}
         </div>
       </div>))}
+    </div>
   </div>);
 }
 
@@ -1965,30 +2231,40 @@ function VistaAlumno({ token }) {
   }, [token]);
   useEffect(cargar, [cargar]);
 
+  // Todas las llamadas del alumno pasan por acá: si el servidor rechaza algo, se avisa.
+  async function pedir(ruta, opciones = {}) {
+    const r = await fetch('/api/alumno/' + token + ruta, Object.assign(
+      { headers: { 'Content-Type': 'application/json' } }, opciones));
+    const datos = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(datos.error || 'No pudimos guardarlo. Probá de nuevo.');
+    return datos;
+  }
+
   async function anotar(item) {
     const v = log[item.id] || {};
     if (!v.kg || !v.reps) { avisar('Cargá el peso y las repeticiones', 'mal'); return; }
-    const r = await fetch('/api/alumno/' + token + '/series', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ item_id: item.id, kg: v.kg, reps: v.reps })
-    }).then(x => x.json());
-    setLog({ ...log, [item.id]: {} });
-    if (r.hoy) setD(prev => ({ ...prev, hoy: r.hoy }));
+    try {
+      const r = await pedir('/series', { method: 'POST',
+        body: JSON.stringify({ item_id: item.id, kg: v.kg, reps: v.reps }) });
+      setLog({ ...log, [item.id]: {} });
+      if (r.hoy) setD(prev => ({ ...prev, hoy: r.hoy }));
+    } catch (e) { avisar(e.message, 'mal'); }
   }
 
   async function borrarSerie(id) {
-    const r = await fetch('/api/alumno/' + token + '/series/' + id, { method: 'DELETE' }).then(x => x.json());
-    if (r.hoy) setD(prev => ({ ...prev, hoy: r.hoy }));
-    avisar('Serie borrada');
+    try {
+      const r = await pedir('/series/' + id, { method: 'DELETE' });
+      if (r.hoy) setD(prev => ({ ...prev, hoy: r.hoy }));
+      avisar('Serie borrada');
+    } catch (e) { avisar(e.message, 'mal'); }
   }
 
   async function guardarPeso() {
     if (!peso) { avisar('Cargá tu peso', 'mal'); return; }
-    await fetch('/api/alumno/' + token + '/seguimiento', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ peso, nota })
-    });
-    setPeso(''); setNota(''); avisar('Seguimiento guardado'); cargar();
+    try {
+      await pedir('/seguimiento', { method: 'POST', body: JSON.stringify({ peso, nota }) });
+      setPeso(''); setNota(''); avisar('Seguimiento guardado'); cargar();
+    } catch (e) { avisar(e.message, 'mal'); }
   }
 
   if (error) return <div className="wrap"><div className="vacio"><p>{error}</p></div></div>;
@@ -2058,7 +2334,8 @@ function VistaAlumno({ token }) {
           <label>¿Cómo te sentiste?<input value={nota} onChange={e => setNota(e.target.value)} placeholder="Opcional" /></label>
         </div>
         <button className="btn naranja" onClick={guardarPeso}>Guardar</button>
-        {(d.seguimiento || []).slice(0, 8).map(s =>
+        <LineaPeso puntos={d.seguimiento} />
+        {(d.seguimiento || []).slice(0, 6).map(s =>
           <p className="suave" key={s.id} style={{ marginTop: 6 }}>
             <b style={{ fontFamily: "'Chivo',sans-serif" }}>{s.peso} kg</b>{' el ' + fmt(s.fecha)}</p>)}
       </div>
@@ -2125,11 +2402,15 @@ function App() {
     if (k === 'ayuda') recargarPerfil();
   }
 
+  // Las listas aprovechan el ancho; las pantallas de detalle no.
+  const anchoCompleto = !clienteId && !rutinaId &&
+    ['alumnos', 'ejercicios', 'plantillas', 'admin'].includes(tab);
+
   let contenido;
   if (tab === 'consultas' && esAdmin) contenido = <Consultas />;
   else if (tab === 'ayuda') contenido = perfil
     ? <Ayuda perfil={perfil} recargarPerfil={recargarPerfil} /> : <p className="suave">Cargando...</p>;
-  else if (tab === 'admin' && esAdmin) contenido = <Admin />;
+  else if (tab === 'admin' && esAdmin) contenido = <Admin perfil={perfil} />;
   else if (tab === 'agenda') contenido =
     <Agenda key={versionTurnos} clientes={clientes} recargarTurnos={recargarTurnos} />;
   else if (tab === 'plantillas') contenido =
@@ -2144,7 +2425,7 @@ function App() {
       recargarEjercicios={recargarEjercicios} />;
   else if (clienteId) contenido =
     <Ficha id={clienteId} clientes={clientes} plantillas={plantillas} recargarPlantillas={recargarPlantillas}
-      recargarTurnos={recargarTurnos} irAAyuda={() => irA('ayuda')}
+      recargarTurnos={recargarTurnos} irAAyuda={() => irA('ayuda')} perfil={perfil}
       volver={() => { setClienteId(null); recargarClientes(); }} abrirRutina={setRutinaId} />;
   else contenido = <Alumnos clientes={clientes} recargar={recargarClientes} abrir={setClienteId}
     recargarTurnos={recargarTurnos} irAAyuda={() => irA('ayuda')} />;
@@ -2161,7 +2442,7 @@ function App() {
           <button key={k} className={'tab ' + (tab === k ? 'on' : '')} onClick={() => irA(k)}>{t}</button>))}
       </div>
     </div>
-    <div className="wrap">
+    <div className={'wrap' + (anchoCompleto ? '' : ' angosto')}>
       <Escudo clave={tab + (clienteId || '') + (rutinaId || '')}>{contenido}</Escudo>
     </div>
   </div>);
