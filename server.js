@@ -84,6 +84,11 @@ const TABLAS = [
      id TEXT PRIMARY KEY, cuenta_id TEXT NOT NULL, dia_id TEXT NOT NULL,
      ejercicio_id TEXT NOT NULL, orden INTEGER NOT NULL DEFAULT 0,
      series TEXT, reps TEXT, nota TEXT)`,
+  // Pedidos de recuperación de contraseña. Se guarda el hash del token, no el token.
+  `CREATE TABLE IF NOT EXISTS recuperaciones (
+     id TEXT PRIMARY KEY, cuenta_id TEXT NOT NULL, token_hash TEXT NOT NULL,
+     creado TEXT NOT NULL, expira TEXT NOT NULL, usado TEXT)`,
+  `CREATE INDEX IF NOT EXISTS ix_recup_hash ON recuperaciones(token_hash)`,
   // Observación del alumno sobre un ejercicio, una por día.
   `CREATE TABLE IF NOT EXISTS observaciones (
      id TEXT PRIMARY KEY, cuenta_id TEXT NOT NULL, cliente_id TEXT NOT NULL,
@@ -131,8 +136,15 @@ const COLUMNAS = [
   ['clientes', 'altura', 'REAL'],
   ['clientes', 'notas', 'TEXT'],
   ['cuentas', 'sesiones_desde', 'TEXT'],
+  ['cuentas', 'sesion_version', 'INTEGER'],
   ['cuentas', 'capacidad', 'INTEGER'],
-  ['series_log', 'numero', 'INTEGER']
+  ['series_log', 'numero', 'INTEGER'],
+  // Peso de referencia que arrastra la rutina al renovarla.
+  ['rutina_items', 'peso_sugerido', 'TEXT'],
+  ['plantilla_items', 'peso_sugerido', 'TEXT'],
+  // Marca los ejercicios que vienen de ejemplo, para poder borrarlos de una.
+  ['ejercicios', 'ejemplo', 'INTEGER'],
+  ['grupos', 'ejemplo', 'INTEGER']
 ];
 
 async function prepararBase() {
@@ -186,7 +198,9 @@ async function usoDe(cuentaId) {
   const uno = async sql => Number((await data.q(sql, [cuentaId]))[0].n);
   return {
     alumnos: await uno('SELECT COUNT(*) AS n FROM clientes WHERE cuenta_id = ? AND activo = 1'),
-    ejercicios: await uno('SELECT COUNT(*) AS n FROM ejercicios WHERE cuenta_id = ?'),
+    // Los de ejemplo no ocupan lugar: si no, el plan gratis arrancaría casi lleno.
+    ejercicios: await uno(
+      'SELECT COUNT(*) AS n FROM ejercicios WHERE cuenta_id = ? AND (ejemplo IS NULL OR ejemplo = 0)'),
     plantillas: await uno('SELECT COUNT(*) AS n FROM plantillas WHERE cuenta_id = ?')
   };
 }
@@ -239,6 +253,41 @@ function linkSeguro(url) {
   return { url: u.href };
 }
 
+/* ------------------------------------------------------------------
+   ENVÍO DE MAILS
+   Funciona con Resend o con Brevo: se usa el que esté configurado.
+   Si no hay ninguno, el link queda en el log del servidor y se puede
+   generar a mano desde el panel de administración.
+------------------------------------------------------------------- */
+const MAIL_DESDE = process.env.MAIL_DESDE || 'AppTrainner <onboarding@resend.dev>';
+
+async function enviarMail({ para, asunto, texto, html }) {
+  if (process.env.RESEND_API_KEY) {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json',
+                 Authorization: 'Bearer ' + process.env.RESEND_API_KEY },
+      body: JSON.stringify({ from: MAIL_DESDE, to: [para], subject: asunto, text: texto, html })
+    });
+    if (!r.ok) throw new Error('Resend respondió ' + r.status);
+    return { proveedor: 'resend' };
+  }
+  if (process.env.BREVO_API_KEY) {
+    const m = MAIL_DESDE.match(/^(.*?)\s*<(.+)>$/);
+    const r = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'api-key': process.env.BREVO_API_KEY },
+      body: JSON.stringify({
+        sender: { name: m ? m[1] : 'AppTrainner', email: m ? m[2] : MAIL_DESDE },
+        to: [{ email: para }], subject: asunto, textContent: texto, htmlContent: html })
+    });
+    if (!r.ok) throw new Error('Brevo respondió ' + r.status);
+    return { proveedor: 'brevo' };
+  }
+  console.log('[SIN PROVEEDOR DE MAIL] Para:', para, '|', asunto, '\n', texto);
+  return { proveedor: null };
+}
+
 const SECRET = process.env.JWT_SECRET;
 if (!SECRET) { console.error('Falta JWT_SECRET'); process.exit(1); }
 
@@ -266,7 +315,8 @@ const data = {
 
   cuenta: async id =>
     (await data.q(
-      'SELECT id, email, nombre, rol, plan, creada, sesiones_desde, capacidad FROM cuentas WHERE id = ?', [id]))[0],
+      `SELECT id, email, nombre, rol, plan, creada, sesiones_desde, capacidad, sesion_version
+         FROM cuentas WHERE id = ?`, [id]))[0],
 
   /* --- grupos musculares --- */
   grupos: cuentaId =>
@@ -419,7 +469,8 @@ const data = {
 
   /* --- rutinas --- */
   rutinasDe: (cuentaId, clienteId) =>
-    data.q('SELECT * FROM rutinas WHERE cuenta_id = ? AND cliente_id = ? ORDER BY inicio DESC', [cuentaId, clienteId]),
+    data.q(`SELECT * FROM rutinas WHERE cuenta_id = ? AND cliente_id = ?
+             ORDER BY inicio DESC, rowid DESC`, [cuentaId, clienteId]),
 
   async rutinaCompleta(cuentaId, rutinaId) {
     const r = (await data.q('SELECT * FROM rutinas WHERE id = ? AND cuenta_id = ?', [rutinaId, cuentaId]))[0];
@@ -493,7 +544,7 @@ const data = {
     return true;
   },
 
-  async agregarItem(cuentaId, diaId, { ejercicio_id, series, reps, nota }) {
+  async agregarItem(cuentaId, diaId, { ejercicio_id, series, reps, nota, peso_sugerido }) {
     if (!await data.dia(cuentaId, diaId)) return null;
     const ej = (await data.q('SELECT id FROM ejercicios WHERE id = ? AND cuenta_id = ?',
       [ejercicio_id, cuentaId]))[0];
@@ -502,17 +553,20 @@ const data = {
       'SELECT COUNT(*) AS n FROM rutina_items WHERE dia_id = ? AND cuenta_id = ?', [diaId, cuentaId]))[0].n);
     const id = uid();
     await data.run(
-      `INSERT INTO rutina_items (id, cuenta_id, dia_id, ejercicio_id, orden, series, reps, nota)
-       VALUES (?,?,?,?,?,?,?,?)`,
-      [id, cuentaId, diaId, ejercicio_id, n, series || null, reps || null, nota || null]);
+      `INSERT INTO rutina_items (id, cuenta_id, dia_id, ejercicio_id, orden, series, reps, nota, peso_sugerido)
+       VALUES (?,?,?,?,?,?,?,?,?)`,
+      [id, cuentaId, diaId, ejercicio_id, n, series || null, reps || null, nota || null,
+       peso_sugerido || null]);
     return { id };
   },
 
-  async editarItem(cuentaId, id, { series, reps, nota }) {
+  async editarItem(cuentaId, id, { series, reps, nota, peso_sugerido }) {
     const it = (await data.q('SELECT id FROM rutina_items WHERE id = ? AND cuenta_id = ?', [id, cuentaId]))[0];
     if (!it) return false;
-    await data.run('UPDATE rutina_items SET series = ?, reps = ?, nota = ? WHERE id = ? AND cuenta_id = ?',
-      [series || null, reps || null, nota || null, id, cuentaId]);
+    await data.run(
+      'UPDATE rutina_items SET series = ?, reps = ?, nota = ?, peso_sugerido = ? WHERE id = ? AND cuenta_id = ?',
+      [series || null, reps || null, nota || null,
+       peso_sugerido === '' ? null : (peso_sugerido || null), id, cuentaId]);
     return true;
   },
 
@@ -530,25 +584,38 @@ const data = {
     return true;
   },
 
-  async duplicarRutina(cuentaId, rutinaId, destinoClienteId) {
+  // Al copiar una rutina se puede arrastrar el peso que el alumno realmente
+  // alcanzó en cada ejercicio: es lo que convierte armar la progresión en un trámite.
+  async duplicarRutina(cuentaId, rutinaId, destinoClienteId, { nombre, conPesos } = {}) {
     const src = await data.rutinaCompleta(cuentaId, rutinaId);
     if (!src) return null;
     if (!await data.cliente(cuentaId, destinoClienteId)) return null;
+
+    // Los pesos se toman del alumno de la rutina original, que es quien los levantó.
+    const pesos = conPesos ? await data.ultimosPesos(cuentaId, src.cliente_id) : {};
+
     const nuevaId = uid();
     await data.run('INSERT INTO rutinas (id, cuenta_id, cliente_id, nombre, inicio) VALUES (?,?,?,?,?)',
-      [nuevaId, cuentaId, destinoClienteId, src.nombre, hoy()]);
+      [nuevaId, cuentaId, destinoClienteId, String(nombre || src.nombre).trim(), hoy()]);
+    let copiados = 0;
     for (const d of src.dias) {
       const diaId = uid();
       await data.run(
         'INSERT INTO rutina_dias (id, cuenta_id, rutina_id, orden, nombre, dia_sugerido) VALUES (?,?,?,?,?,?)',
         [diaId, cuentaId, nuevaId, d.orden, d.nombre, d.dia_sugerido]);
-      for (const it of d.items)
+      for (const it of d.items) {
+        const logrado = pesos[it.ejercicio_id];
+        const peso = logrado ? String(logrado.kg) : (it.peso_sugerido || null);
+        if (logrado) copiados++;
         await data.run(
-          `INSERT INTO rutina_items (id, cuenta_id, dia_id, ejercicio_id, orden, series, reps, nota)
-           VALUES (?,?,?,?,?,?,?,?)`,
-          [uid(), cuentaId, diaId, it.ejercicio_id, it.orden, it.series, it.reps, it.nota]);
+          `INSERT INTO rutina_items (id, cuenta_id, dia_id, ejercicio_id, orden, series, reps, nota, peso_sugerido)
+           VALUES (?,?,?,?,?,?,?,?,?)`,
+          [uid(), cuentaId, diaId, it.ejercicio_id, it.orden, it.series, it.reps, it.nota, peso]);
+      }
     }
-    return data.rutinaCompleta(cuentaId, nuevaId);
+    const rutina = await data.rutinaCompleta(cuentaId, nuevaId);
+    rutina.pesos_copiados = copiados;
+    return rutina;
   },
 
   async importarRutina(cuentaId, clienteId, { nombre, filas }) {
@@ -777,9 +844,9 @@ const data = {
         [diaId, cuentaId, id, d.orden, d.nombre, d.dia_sugerido]);
       for (const it of d.items)
         await data.run(
-          `INSERT INTO plantilla_items (id, cuenta_id, dia_id, ejercicio_id, orden, series, reps, nota)
-           VALUES (?,?,?,?,?,?,?,?)`,
-          [uid(), cuentaId, diaId, it.ejercicio_id, it.orden, it.series, it.reps, it.nota]);
+          `INSERT INTO plantilla_items (id, cuenta_id, dia_id, ejercicio_id, orden, series, reps, nota, peso_sugerido)
+           VALUES (?,?,?,?,?,?,?,?,?)`,
+          [uid(), cuentaId, diaId, it.ejercicio_id, it.orden, it.series, it.reps, it.nota, it.peso_sugerido]);
     }
     return data.plantillaCompleta(cuentaId, id);
   },
@@ -799,9 +866,9 @@ const data = {
         [diaId, cuentaId, rutinaId, d.orden, d.nombre, d.dia_sugerido]);
       for (const it of d.items)
         await data.run(
-          `INSERT INTO rutina_items (id, cuenta_id, dia_id, ejercicio_id, orden, series, reps, nota)
-           VALUES (?,?,?,?,?,?,?,?)`,
-          [uid(), cuentaId, diaId, it.ejercicio_id, it.orden, it.series, it.reps, it.nota]);
+          `INSERT INTO rutina_items (id, cuenta_id, dia_id, ejercicio_id, orden, series, reps, nota, peso_sugerido)
+           VALUES (?,?,?,?,?,?,?,?,?)`,
+          [uid(), cuentaId, diaId, it.ejercicio_id, it.orden, it.series, it.reps, it.nota, it.peso_sugerido]);
     }
     return data.rutinaCompleta(cuentaId, rutinaId);
   },
@@ -1160,11 +1227,10 @@ async function auth(req, res, next) {
   const cuenta = await data.cuenta(datos.cuentaId);
   if (!cuenta) return res.status(401).json({ error: 'Esta cuenta ya no existe.' });
 
-  // Al cambiar la contraseña se cierran las sesiones abiertas en otros dispositivos.
-  // La comparación va en segundos porque esa es la resolución del token: si no,
-  // la sesión que devolvemos al cambiar la clave nacería vencida.
-  if (cuenta.sesiones_desde &&
-      datos.iat < Math.floor(new Date(cuenta.sesiones_desde).getTime() / 1000))
+  // Al cambiar la contraseña sube el contador de sesión y los tokens viejos dejan de valer.
+  // Se compara por número y no por hora: con horas, un cambio hecho en el mismo
+  // segundo que el login dejaba viva la sesión anterior.
+  if ((datos.v || 0) !== (cuenta.sesion_version || 0))
     return res.status(401).json({ error: 'Cambiaste la contraseña. Volvé a entrar.' });
 
   // Una cuenta pausada no puede leer ni escribir nada del sistema.
@@ -1199,7 +1265,8 @@ app.post('/api/registro', ruta(async (req, res) => {
   const id = uid();
   await data.run('INSERT INTO cuentas (id, email, password, nombre, rol, creada) VALUES (?,?,?,?,?,?)',
     [id, mail, bcrypt.hashSync(password, 12), String(nombre).trim(), esAdmin ? 'admin' : 'pt', hoy()]);
-  res.json({ token: jwt.sign({ cuentaId: id }, SECRET, { expiresIn: '30d' }),
+  await cargarEjemplos(id);
+  res.json({ token: jwt.sign({ cuentaId: id, v: 0 }, SECRET, { expiresIn: '30d' }),
              nombre: String(nombre).trim(), rol: esAdmin ? 'admin' : 'pt' });
 }));
 
@@ -1212,7 +1279,7 @@ app.post('/api/login', ruta(async (req, res) => {
   if (!c || !bcrypt.compareSync((req.body || {}).password || '', c.password))
     return res.status(401).json({ error: 'Mail o contraseña incorrectos.' });
   limpiarLimite(clave);
-  res.json({ token: jwt.sign({ cuentaId: c.id }, SECRET, { expiresIn: '30d' }),
+  res.json({ token: jwt.sign({ cuentaId: c.id, v: c.sesion_version || 0 }, SECRET, { expiresIn: '30d' }),
              nombre: c.nombre, rol: c.rol });
 }));
 
@@ -1224,6 +1291,79 @@ app.patch('/api/perfil', auth, ruta(async (req, res) => {
   res.json({ ok: true });
 }));
 
+const hashToken = t => crypto.createHash('sha256').update(t).digest('hex');
+
+// Pide el link. Siempre responde lo mismo, exista o no la cuenta:
+// si no, cualquiera podría averiguar qué mails están registrados.
+app.post('/api/recuperar', ruta(async (req, res) => {
+  const mail = String((req.body || {}).email || '').trim().toLowerCase();
+  const respuesta = { ok: true,
+    mensaje: 'Si ese mail tiene una cuenta, te mandamos un link para cambiar la contraseña.' };
+  if (!MAIL_OK.test(mail)) return res.json(respuesta);
+  if (!limitar('rec:' + req.ip, 8, 60)) return res.json(respuesta);
+
+  const c = (await data.q('SELECT id, email, nombre FROM cuentas WHERE email = ?', [mail]))[0];
+  if (!c) return res.json(respuesta);
+
+  const token = crypto.randomBytes(32).toString('hex');
+  const expira = new Date(Date.now() + 60 * 60000).toISOString();   // una hora
+  // Un pedido nuevo invalida los anteriores.
+  await data.run('UPDATE recuperaciones SET usado = ? WHERE cuenta_id = ? AND usado IS NULL',
+    [ahora(), c.id]);
+  await data.run(
+    'INSERT INTO recuperaciones (id, cuenta_id, token_hash, creado, expira) VALUES (?,?,?,?,?)',
+    [uid(), c.id, hashToken(token), ahora(), expira]);
+
+  const base = process.env.URL_APP || ('https://' + (req.headers.host || 'apptrainner'));
+  const link = base + '/?recuperar=' + token;
+  try {
+    await enviarMail({
+      para: c.email,
+      asunto: 'Cambiar tu contraseña de AppTrainner',
+      texto: `Hola ${c.nombre}:\n\nEntrá acá para poner una contraseña nueva:\n${link}\n\n` +
+             `El link vence en una hora y se puede usar una sola vez.\n` +
+             `Si no pediste esto, ignorá el mail: tu contraseña sigue igual.`,
+      html: `<p>Hola ${c.nombre}:</p><p><a href="${link}">Poné una contraseña nueva</a></p>` +
+            `<p>El link vence en una hora y se usa una sola vez. Si no lo pediste, ignoralo.</p>`
+    });
+  } catch (e) { console.error('No pudimos mandar el mail de recuperación:', e.message); }
+  res.json(respuesta);
+}));
+
+// Confirma el cambio con el token del mail.
+app.post('/api/recuperar/confirmar', ruta(async (req, res) => {
+  const { token, nueva } = req.body || {};
+  if (String(nueva || '').length < 8)
+    return res.status(400).json({ error: 'La contraseña nueva tiene que tener al menos 8 caracteres.' });
+  if (!limitar('recconf:' + req.ip, 20, 60))
+    return res.status(429).json({ error: 'Demasiados intentos. Esperá un rato.' });
+
+  const r = (await data.q('SELECT * FROM recuperaciones WHERE token_hash = ?',
+    [hashToken(String(token || ''))]))[0];
+  if (!r || r.usado || new Date(r.expira) < new Date())
+    return res.status(400).json({ error: 'Este link ya no sirve. Pedí uno nuevo.' });
+
+  const cuentaVieja = await data.cuenta(r.cuenta_id);
+  await data.run(
+    'UPDATE cuentas SET password = ?, sesiones_desde = ?, sesion_version = ? WHERE id = ?',
+    [bcrypt.hashSync(nueva, 12), ahora(), ((cuentaVieja || {}).sesion_version || 0) + 1, r.cuenta_id]);
+  await data.run('UPDATE recuperaciones SET usado = ? WHERE id = ?', [ahora(), r.id]);
+  res.json({ ok: true });
+}));
+
+// Mientras no haya proveedor de mail, el admin puede generar el link a mano.
+app.post('/api/admin/cuentas/:id/recuperacion', auth, soloAdmin, ruta(async (req, res) => {
+  const c = await data.cuenta(req.params.id);
+  if (!c) return res.status(404).json({ error: 'No encontramos esa cuenta.' });
+  const token = crypto.randomBytes(32).toString('hex');
+  await data.run('UPDATE recuperaciones SET usado = ? WHERE cuenta_id = ? AND usado IS NULL', [ahora(), c.id]);
+  await data.run(
+    'INSERT INTO recuperaciones (id, cuenta_id, token_hash, creado, expira) VALUES (?,?,?,?,?)',
+    [uid(), c.id, hashToken(token), ahora(), new Date(Date.now() + 60 * 60000).toISOString()]);
+  const base = process.env.URL_APP || ('https://' + (req.headers.host || 'apptrainner'));
+  res.json({ link: base + '/?recuperar=' + token });
+}));
+
 app.post('/api/cambiar-clave', auth, ruta(async (req, res) => {
   const { actual, nueva } = req.body || {};
   if (String(nueva || '').length < 8)
@@ -1231,9 +1371,75 @@ app.post('/api/cambiar-clave', auth, ruta(async (req, res) => {
   const c = (await data.q('SELECT * FROM cuentas WHERE id = ?', [req.cuentaId]))[0];
   if (!c || !bcrypt.compareSync(actual || '', c.password))
     return res.status(401).json({ error: 'La contraseña actual no coincide.' });
-  await data.run('UPDATE cuentas SET password = ?, sesiones_desde = ? WHERE id = ?',
-    [bcrypt.hashSync(nueva, 12), ahora(), req.cuentaId]);
-  res.json({ ok: true, token: jwt.sign({ cuentaId: req.cuentaId }, SECRET, { expiresIn: '30d' }) });
+  const version = (req.cuenta.sesion_version || 0) + 1;
+  await data.run('UPDATE cuentas SET password = ?, sesiones_desde = ?, sesion_version = ? WHERE id = ?',
+    [bcrypt.hashSync(nueva, 12), ahora(), version, req.cuentaId]);
+  res.json({ ok: true,
+             token: jwt.sign({ cuentaId: req.cuentaId, v: version }, SECRET, { expiresIn: '30d' }) });
+}));
+
+/* ------------------------------------------------------------------
+   ARRANQUE DE UNA CUENTA NUEVA
+   Se cargan grupos y ejercicios de ejemplo para que el entrenador pueda
+   armar una rutina el primer día. Quedan marcados y se borran de una vez.
+------------------------------------------------------------------- */
+const EJEMPLOS = [
+  ['Sentadilla con barra', 'Piernas'], ['Prensa 45', 'Piernas'],
+  ['Peso muerto rumano', 'Piernas'], ['Extensión de cuádriceps', 'Piernas'],
+  ['Camilla femoral', 'Piernas'], ['Gemelos de pie', 'Piernas'],
+  ['Press banca plano', 'Pecho'], ['Press inclinado con mancuernas', 'Pecho'],
+  ['Aperturas en banco plano', 'Pecho'],
+  ['Dorsalera clásica', 'Espalda'], ['Remo con barra', 'Espalda'],
+  ['Remo en polea', 'Espalda'], ['Dominadas asistidas', 'Espalda'],
+  ['Press militar', 'Hombros'], ['Vuelo lateral con mancuernas', 'Hombros'],
+  ['Curl de bíceps con barra', 'Brazos'], ['Curl martillo', 'Brazos'],
+  ['Extensión de tríceps en polea', 'Brazos'], ['Press francés', 'Brazos'],
+  ['Plancha', 'Core'], ['Rueda abdominal', 'Core']
+];
+
+async function cargarEjemplos(cuentaId) {
+  const grupos = [...new Set(EJEMPLOS.map(e => e[1]))];
+  for (const g of grupos)
+    await data.run('INSERT INTO grupos (id, cuenta_id, nombre, ejemplo) VALUES (?,?,?,1)',
+      [uid(), cuentaId, g]);
+  for (const [nombre, grupo] of EJEMPLOS)
+    await data.run('INSERT INTO ejercicios (id, cuenta_id, nombre, grupo, ejemplo) VALUES (?,?,?,?,1)',
+      [uid(), cuentaId, nombre, grupo]);
+}
+
+// Borra solo los de ejemplo que el entrenador no usó en ninguna rutina.
+app.delete('/api/ejemplos', auth, ruta(async (req, res) => {
+  const usados = await data.q(
+    `SELECT DISTINCT e.id FROM ejercicios e
+       WHERE e.cuenta_id = ? AND e.ejemplo = 1
+         AND (EXISTS (SELECT 1 FROM rutina_items i WHERE i.ejercicio_id = e.id)
+           OR EXISTS (SELECT 1 FROM plantilla_items p WHERE p.ejercicio_id = e.id))`,
+    [req.cuentaId]);
+  const proteger = new Set(usados.map(u => u.id));
+
+  const todos = await data.q('SELECT id, grupo FROM ejercicios WHERE cuenta_id = ? AND ejemplo = 1',
+    [req.cuentaId]);
+  let borrados = 0;
+  for (const e of todos) {
+    if (proteger.has(e.id)) continue;
+    await data.run('DELETE FROM series_log WHERE ejercicio_id = ? AND cuenta_id = ?', [e.id, req.cuentaId]);
+    await data.run('DELETE FROM ejercicios WHERE id = ? AND cuenta_id = ?', [e.id, req.cuentaId]);
+    borrados++;
+  }
+  // Los grupos de ejemplo que quedaron sin ejercicios también se van.
+  const gruposEjemplo = await data.q('SELECT id, nombre FROM grupos WHERE cuenta_id = ? AND ejemplo = 1',
+    [req.cuentaId]);
+  let gruposBorrados = 0;
+  for (const g of gruposEjemplo) {
+    const quedan = Number((await data.q(
+      'SELECT COUNT(*) AS n FROM ejercicios WHERE cuenta_id = ? AND grupo = ?',
+      [req.cuentaId, g.nombre]))[0].n);
+    if (!quedan) {
+      await data.run('DELETE FROM grupos WHERE id = ? AND cuenta_id = ?', [g.id, req.cuentaId]);
+      gruposBorrados++;
+    }
+  }
+  res.json({ ok: true, ejercicios: borrados, grupos: gruposBorrados, conservados: proteger.size });
 }));
 
 /* ------------------------------------------------------------------
@@ -1268,8 +1474,11 @@ app.delete('/api/grupos/:id', auth, ruta(async (req, res) => {
   res.json(r);
 }));
 
-app.get('/api/ejercicios', auth, ruta(async (req, res) =>
-  res.json({ ejercicios: await data.ejercicios(req.cuentaId), grupos: await data.grupos(req.cuentaId) })));
+app.get('/api/ejercicios', auth, ruta(async (req, res) => {
+  const ejercicios = await data.ejercicios(req.cuentaId);
+  res.json({ ejercicios, grupos: await data.grupos(req.cuentaId),
+             ejemplos: ejercicios.filter(e => e.ejemplo).length });
+}));
 
 app.post('/api/ejercicios', auth, ruta(async (req, res) => {
   if (!String((req.body || {}).nombre || '').trim())
@@ -1403,6 +1612,9 @@ app.delete('/api/dias/:id', auth, ruta(async (req, res) => {
 }));
 
 app.post('/api/dias/:id/items', auth, ruta(async (req, res) => {
+  const p = (req.body || {}).peso_sugerido;
+  if (p !== undefined && p !== '' && p !== null && numeroEn(p, ...RANGOS.kg) === null)
+    return res.status(400).json({ error: 'Ese peso de referencia no es válido.' });
   const r = await data.agregarItem(req.cuentaId, req.params.id, req.body);
   if (!r) return res.status(404).json({ error: 'No encontramos ese día o ese ejercicio.' });
   res.json(r);
@@ -1417,6 +1629,9 @@ app.patch('/api/dias/:id/orden', auth, ruta(async (req, res) => {
 }));
 
 app.patch('/api/items/:id', auth, ruta(async (req, res) => {
+  const p = (req.body || {}).peso_sugerido;
+  if (p !== undefined && p !== '' && p !== null && numeroEn(p, ...RANGOS.kg) === null)
+    return res.status(400).json({ error: 'Ese peso de referencia no es válido.' });
   if (!await data.editarItem(req.cuentaId, req.params.id, req.body))
     return res.status(404).json({ error: 'No encontramos ese ejercicio en la rutina.' });
   res.json({ ok: true });
@@ -1428,7 +1643,9 @@ app.delete('/api/items/:id', auth, ruta(async (req, res) => {
 }));
 
 app.post('/api/rutinas/:id/duplicar', auth, ruta(async (req, res) => {
-  const r = await data.duplicarRutina(req.cuentaId, req.params.id, (req.body || {}).cliente_id);
+  const { cliente_id, nombre, con_pesos } = req.body || {};
+  const r = await data.duplicarRutina(req.cuentaId, req.params.id, cliente_id,
+    { nombre, conPesos: !!con_pesos });
   if (!r) return res.status(404).json({ error: 'No pudimos copiar: revisá la rutina y el alumno.' });
   res.json(r);
 }));
@@ -1751,6 +1968,107 @@ app.post('/api/mensajes', auth, ruta(async (req, res) => {
   res.json(await data.crearMensaje(req.cuentaId, { tipo: TIPOS.includes(tipo) ? tipo : 'pregunta', texto: t }));
 }));
 
+/* ------------------------------------------------------------------
+   MÉTRICAS DEL PRODUCTO (solo administración)
+------------------------------------------------------------------- */
+app.get('/api/admin/metricas', auth, soloAdmin, ruta(async (req, res) => {
+  const uno = async (sql, args = []) => Number((await data.q(sql, args))[0].n);
+  const haceDias = n => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);
+
+  const cuentas = await data.q(
+    `SELECT c.id, c.nombre, c.email, c.plan, c.creada,
+            (SELECT COUNT(*) FROM clientes x WHERE x.cuenta_id = c.id AND x.activo = 1) AS alumnos,
+            (SELECT COUNT(*) FROM rutinas r WHERE r.cuenta_id = c.id) AS rutinas,
+            (SELECT MAX(s.fecha) FROM series_log s WHERE s.cuenta_id = c.id) AS ultima_serie
+       FROM cuentas c ORDER BY c.creada DESC`);
+
+  // Altas por semana de las últimas 8 semanas.
+  const altas = [];
+  for (let i = 7; i >= 0; i--) {
+    const desde = haceDias((i + 1) * 7), hasta = haceDias(i * 7);
+    altas.push({ hasta, n: cuentas.filter(c => c.creada > desde && c.creada <= hasta).length });
+  }
+
+  // Actividad de los alumnos: cuántos anotaron algo en los últimos 7 y 30 días.
+  const activos7 = await uno(
+    'SELECT COUNT(DISTINCT cliente_id) AS n FROM series_log WHERE fecha >= ?', [haceDias(7)]);
+  const activos30 = await uno(
+    'SELECT COUNT(DISTINCT cliente_id) AS n FROM series_log WHERE fecha >= ?', [haceDias(30)]);
+
+  const dormidas = cuentas.filter(c =>
+    (!c.ultima_serie || c.ultima_serie < haceDias(15)) && c.plan !== 'pausado');
+
+  res.json({
+    cuentas: {
+      total: cuentas.length,
+      gratis: cuentas.filter(c => c.plan === 'prueba').length,
+      pagas: cuentas.filter(c => c.plan === 'activo').length,
+      pausadas: cuentas.filter(c => c.plan === 'pausado').length
+    },
+    altas,
+    volumen: {
+      alumnos: await uno('SELECT COUNT(*) AS n FROM clientes WHERE activo = 1'),
+      ejercicios: await uno('SELECT COUNT(*) AS n FROM ejercicios'),
+      rutinas: await uno('SELECT COUNT(*) AS n FROM rutinas'),
+      series: await uno('SELECT COUNT(*) AS n FROM series_log'),
+      turnos: await uno('SELECT COUNT(*) AS n FROM turnos'),
+      plantillas: await uno('SELECT COUNT(*) AS n FROM plantillas')
+    },
+    uso: {
+      alumnos_activos_7: activos7,
+      alumnos_activos_30: activos30,
+      series_ultimos_7: await uno('SELECT COUNT(*) AS n FROM series_log WHERE fecha >= ?', [haceDias(7)]),
+      cuentas_dormidas: dormidas.length,
+      consultas_abiertas: await uno("SELECT COUNT(*) AS n FROM mensajes WHERE estado = 'abierto'")
+    },
+    // Ranking para ver quién le está sacando jugo y quién está por irse.
+    ranking: cuentas
+      .map(c => ({ nombre: c.nombre, email: c.email, plan: c.plan, alumnos: c.alumnos,
+                   rutinas: c.rutinas, ultima_serie: c.ultima_serie }))
+      .sort((a, b) => b.alumnos - a.alumnos).slice(0, 15),
+    dormidas: dormidas.map(c => ({ nombre: c.nombre, email: c.email, plan: c.plan,
+                                   ultima_serie: c.ultima_serie, creada: c.creada })).slice(0, 15)
+  });
+}));
+
+/* ------------------------------------------------------------------
+   EXPORTAR TODO LO DEL ENTRENADOR
+------------------------------------------------------------------- */
+app.get('/api/exportar', auth, ruta(async (req, res) => {
+  const id = req.cuentaId;
+  const clientes = await data.q(
+    'SELECT nombre, contacto, inicio, peso_inicial, altura, notas FROM clientes WHERE cuenta_id = ? AND activo = 1', [id]);
+  const ejercicios = await data.q(
+    'SELECT nombre, grupo, video_url FROM ejercicios WHERE cuenta_id = ?', [id]);
+  const rutinas = await data.q(
+    `SELECT c.nombre AS alumno, r.nombre AS rutina, d.nombre AS dia, d.dia_sugerido,
+            e.nombre AS ejercicio, i.series, i.reps, i.nota, i.peso_sugerido
+       FROM rutina_items i
+       JOIN rutina_dias d ON d.id = i.dia_id
+       JOIN rutinas r ON r.id = d.rutina_id
+       JOIN clientes c ON c.id = r.cliente_id
+       JOIN ejercicios e ON e.id = i.ejercicio_id
+      WHERE i.cuenta_id = ? ORDER BY c.nombre, r.inicio, d.orden, i.orden`, [id]);
+  const turnos = await data.q(
+    `SELECT c.nombre AS alumno, t.dia_semana, t.hora, t.duracion, t.nota
+       FROM turnos t JOIN clientes c ON c.id = t.cliente_id
+      WHERE t.cuenta_id = ? ORDER BY t.dia_semana, t.hora`, [id]);
+  const registros = await data.q(
+    `SELECT c.nombre AS alumno, s.fecha, s.semana, d.nombre AS dia, e.nombre AS ejercicio,
+            s.numero, s.kg, s.reps
+       FROM series_log s
+       JOIN clientes c ON c.id = s.cliente_id
+       JOIN ejercicios e ON e.id = s.ejercicio_id
+       LEFT JOIN rutina_dias d ON d.id = s.dia_id
+      WHERE s.cuenta_id = ? ORDER BY s.fecha DESC, c.nombre, s.numero LIMIT 20000`, [id]);
+  const seguimiento = await data.q(
+    `SELECT c.nombre AS alumno, g.fecha, g.semana, g.peso, g.nota
+       FROM seguimiento g JOIN clientes c ON c.id = g.cliente_id
+      WHERE g.cuenta_id = ? ORDER BY g.fecha DESC`, [id]);
+  res.json({ generado: ahora(), cuenta: req.cuenta.nombre,
+             clientes, ejercicios, rutinas, turnos, registros, seguimiento });
+}));
+
 app.get('/api/admin/mensajes', auth, soloAdmin, ruta(async (req, res) =>
   res.json(await data.todosLosMensajes())));
 
@@ -1770,13 +2088,19 @@ app.get('/api/alumno/:token', ruta(async (req, res) => {
   const c = await data.clientePorToken(req.params.token);
   if (!c) return res.status(404).json({ error: 'Este link no es válido. Pedile uno nuevo a tu profe.' });
   const rutinas = await data.rutinasDe(c.cuenta_id, c.id);
-  const semana = semanaDe(c.inicio);
+  const enCurso = semanaDe(c.inicio);
+  // Puede mirar semanas pasadas y las que vienen; por defecto cae en la que está entrenando.
+  const pedida = numeroEn(req.query.semana, 1, 52);
+  const semana = pedida === null ? enCurso : pedida;
   const indicacion = await data.indicacionActiva(c.cuenta_id, c.id);
   const seguimiento = await data.seguimientoDe(c.cuenta_id, c.id);
   res.json({
     nombre: c.nombre,
     inicio: c.inicio,
     semana,
+    semana_en_curso: enCurso,
+    // Hasta dónde puede mirar hacia adelante: el plan dura cuatro semanas.
+    semanas_totales: Math.max(4, enCurso),
     rutina: rutinas[0] ? await data.rutinaCompleta(c.cuenta_id, rutinas[0].id) : null,
     // La planilla arranca limpia cada semana, pero lo anterior queda en el historial.
     series: await data.seriesDeLaSemana(c.cuenta_id, c.id, semana),
