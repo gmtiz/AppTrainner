@@ -19,6 +19,27 @@
     --cobalto-suave:#E8EFFB;
     --carmin:#C42B3E;       /* solo errores y borrados */
     --carmin-suave:#FBEAEC;
+    --barra:#0F2231;        /* fondo de la barra superior */
+    --sobre-barra:#FFFFFF;
+    --barra-suave:#8FA6BA;
+  }
+  /* Modo oscuro: misma hoja cuadriculada, de noche. Pensado para gimnasios
+     con luz baja y celulares con poca batería. */
+  html[data-tema="oscuro"]{
+    --papel:#101A22;
+    --grilla:#1A2733;
+    --hoja:#17222C;
+    --tinta:#E8EEF3;
+    --gris:#93A7B8;
+    --borde:#27343F;
+    --cobalto:#5B9BFF;
+    --cobalto-suave:#1B2E45;
+    --carmin:#F0798A;
+    --carmin-suave:#3A1F26;
+    --barra:#0A1219;
+    --sobre-barra:#E8EEF3;
+    --barra-suave:#7F94A6;
+    color-scheme:dark;
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
@@ -42,17 +63,23 @@
 
   /* ---------- barra superior ---------- */
   .topbar{
-    background:var(--tinta);color:#fff;padding:15px 16px 0;position:sticky;top:0;z-index:20;
+    background:var(--barra);color:var(--sobre-barra);padding:15px 16px 0;position:sticky;top:0;z-index:20;
     border-bottom:3px solid var(--cobalto);
   }
   .brand{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
-  .brand h1{color:#fff;font-family:'Chivo',sans-serif;font-weight:900;font-size:20px;letter-spacing:-.03em}
-  .brand .hola{color:#8FA6BA;font-size:14px}
+  .brand h1{color:var(--sobre-barra);font-family:'Chivo',sans-serif;font-weight:900;font-size:20px;letter-spacing:-.03em}
+  .brand .hola{color:var(--barra-suave);font-size:14px}
   .brand button{
-    margin-left:auto;background:none;border:0;color:#8FA6BA;font-family:inherit;
+    background:none;border:0;color:var(--barra-suave);font-family:inherit;
     font-size:13.5px;font-weight:600;cursor:pointer;padding:6px 2px;border-bottom:1.5px solid transparent;
   }
-  .brand button:hover{color:#fff;border-bottom-color:#8FA6BA}
+  .brand button:hover{color:var(--sobre-barra);border-bottom-color:var(--barra-suave)}
+  .brand .derecha{margin-left:auto;display:flex;align-items:center;gap:14px}
+  .tema{
+    background:none;border:0;cursor:pointer;font-size:16px;line-height:1;padding:4px;
+    color:var(--barra-suave);
+  }
+  .tema:hover{color:var(--sobre-barra)}
   .tabs{display:flex;gap:20px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
   .tabs::-webkit-scrollbar{display:none}
   @media (max-width:560px){
@@ -62,11 +89,11 @@
     .topbar{position:sticky;background-image:linear-gradient(90deg,transparent 88%,rgba(15,34,49,.9) 100%)}
   }
   .tab{
-    flex:0 0 auto;background:none;border:0;color:#8FA6BA;font-family:'Chivo',sans-serif;
+    flex:0 0 auto;background:none;border:0;color:var(--barra-suave);font-family:'Chivo',sans-serif;
     font-size:15px;font-weight:600;padding:6px 0 11px;cursor:pointer;
     border-bottom:3px solid transparent;margin-bottom:-3px;white-space:nowrap;letter-spacing:-.01em;
   }
-  .tab.on{color:#fff;border-bottom-color:#fff}
+  .tab.on{color:var(--sobre-barra);border-bottom-color:var(--sobre-barra)}
 
   .wrap{max-width:720px;margin:0 auto;padding:22px 16px 72px}
   /* En pantallas grandes las listas se reparten en columnas en vez de quedar
@@ -99,7 +126,7 @@
     cursor:pointer;width:100%;
   }
   .btn:hover{background:#144CAB}
-  .btn.naranja{background:var(--tinta)}
+  .btn.naranja{background:var(--barra);color:var(--sobre-barra)}
   .btn.naranja:hover{background:#1B3648}
   .btn.linea{background:var(--hoja);color:var(--tinta);border:1.5px solid var(--borde)}
   .btn.linea:hover{border-color:var(--tinta)}
@@ -199,6 +226,11 @@
   }
   .portada h1{margin-top:14px;font-size:29px}
   .portada p{color:var(--gris);font-size:15px;margin-top:8px;max-width:32ch}
+  .olvide{
+    background:none;border:0;color:var(--gris);font-family:inherit;font-size:13.5px;
+    cursor:pointer;padding:12px 0 0;width:100%;text-decoration:underline;
+  }
+  .olvide:hover{color:var(--cobalto)}
 
   /* ---------- series ya anotadas ---------- */
   .hechas{border-left:2px solid var(--cobalto);padding-left:12px;margin-top:10px}
@@ -212,11 +244,50 @@
 
   .semana{margin-bottom:20px}
   .semana > h3{
-    display:inline-block;background:var(--tinta);color:#fff;font-size:13.5px;
+    display:inline-block;background:var(--barra);color:var(--sobre-barra);font-size:13.5px;
     padding:3px 10px;border-radius:3px;margin-bottom:8px;
   }
 
   /* ---------- navegación por día ---------- */
+  .tablero{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+  .dato-grande{
+    background:var(--hoja);border:1px solid var(--borde);border-left:3px solid var(--cobalto);
+    border-radius:4px;padding:14px 16px;display:flex;flex-direction:column;gap:2px;
+  }
+  .cifra-dato{font-family:'Chivo',sans-serif;font-size:30px;font-weight:900;letter-spacing:-.03em;
+    color:var(--cobalto);line-height:1;font-variant-numeric:tabular-nums}
+  .etiqueta-dato{font-size:13.5px;font-weight:600}
+  .barras{display:flex;align-items:flex-end;gap:6px;height:110px;margin-top:10px}
+  .barra-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;justify-content:flex-end}
+  .barra-col .col{width:100%;background:var(--cobalto);border-radius:2px 2px 0 0;min-height:3px}
+  .semana-grilla{
+    display:grid;grid-template-columns:44px repeat(7, minmax(72px, 1fr));gap:2px;
+    background:var(--hoja);border:1px solid var(--borde);border-radius:4px;padding:10px 8px 14px;
+    overflow-x:auto;
+  }
+  .semana-grilla .horas{position:relative;height:calc(var(--alto) + 30px);margin-top:30px}
+  .semana-grilla .hora-marca{
+    position:absolute;right:6px;font-size:11px;color:var(--gris);transform:translateY(-6px);
+    font-family:'Chivo',sans-serif;
+  }
+  .semana-grilla .col-dia{display:flex;flex-direction:column;min-width:0}
+  .semana-grilla .cabeza{
+    height:30px;font-family:'Chivo',sans-serif;font-weight:700;font-size:13px;
+    color:var(--gris);text-align:center;
+  }
+  .semana-grilla .pista{position:relative;height:var(--alto);border-left:1px solid var(--borde)}
+  .semana-grilla .linea{position:absolute;left:0;right:0;height:1px;background:var(--borde);opacity:.6}
+  .semana-grilla .bloque{
+    position:absolute;left:2px;right:2px;background:var(--cobalto-suave);border:1px solid var(--cobalto);
+    border-radius:3px;padding:3px 4px;cursor:pointer;overflow:hidden;text-align:left;
+    display:flex;flex-direction:column;gap:1px;font-family:inherit;
+  }
+  .semana-grilla .bloque:hover{background:var(--cobalto);color:#fff}
+  .semana-grilla .bloque:hover .hora-bloque,.semana-grilla .bloque:hover .quien-bloque{color:#fff}
+  .semana-grilla .bloque.choca{background:var(--carmin-suave);border-color:var(--carmin)}
+  .semana-grilla .hora-bloque{font-family:'Chivo',sans-serif;font-size:11px;font-weight:700;color:var(--cobalto)}
+  .semana-grilla .bloque.choca .hora-bloque{color:var(--carmin)}
+  .semana-grilla .quien-bloque{font-size:11.5px;color:var(--tinta);line-height:1.2;overflow:hidden}
   .navdia{
     display:flex;align-items:center;gap:12px;background:var(--hoja);
     border:1px solid var(--borde);border-radius:4px;padding:12px 14px;margin-bottom:12px;
@@ -269,6 +340,15 @@
   }
   .nota-alumno{margin-top:8px;border-left:2px solid var(--borde);padding-left:12px}
   .nota-alumno label{margin-bottom:8px}
+  .navsemana{
+    display:flex;align-items:center;gap:12px;background:var(--hoja);border:1px solid var(--borde);
+    border-radius:4px;padding:10px 14px;margin-bottom:12px;
+  }
+  .navsemana .mini{width:34px;height:34px;font-size:18px;font-weight:700;color:var(--tinta)}
+  .navsemana .centro-sem{flex:1;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px}
+  .navsemana b{font-family:'Chivo',sans-serif;font-size:16px}
+  .referencia{font-size:13px;color:var(--gris);margin-top:8px}
+  .referencia b{font-family:'Chivo',sans-serif;color:var(--cobalto)}
   .peso-dia .anotar{max-width:none;flex:0 0 auto}
   .peso-dia .anotar input{width:82px;text-align:center;font-family:'Chivo',sans-serif;
     font-weight:700;font-size:17px;padding:10px 6px}
@@ -291,7 +371,7 @@
     background:var(--hoja);border:1.5px solid var(--borde);border-radius:20px;padding:6px 14px;
     font-family:'Chivo',sans-serif;font-size:13.5px;font-weight:700;color:var(--gris);cursor:pointer;
   }
-  .chip.on{background:var(--tinta);border-color:var(--tinta);color:#fff}
+  .chip.on{background:var(--cobalto);border-color:var(--cobalto);color:#fff}
   .tabla.detalle td:first-child{width:52px;font-family:'Chivo',sans-serif;color:var(--gris)}
   .tabla.detalle b{font-family:'Chivo',sans-serif;font-variant-numeric:tabular-nums}
   .observacion{margin-top:8px;border-left:2px solid var(--cobalto);padding-left:12px}
@@ -351,7 +431,7 @@
     align-items:center;gap:8px;z-index:80;pointer-events:none;padding:0 16px;
   }
   .mensaje{
-    background:var(--tinta);color:#fff;padding:11px 17px;border-radius:4px;
+    background:var(--barra);color:var(--sobre-barra);padding:11px 17px;border-radius:4px;
     font-size:14.5px;font-weight:500;max-width:440px;border-left:3px solid var(--cobalto);
   }
   .mensaje.mal{border-left-color:var(--carmin)}
@@ -440,6 +520,30 @@ function Progreso({ inicio, compacto }) {
     </div>);
 }
 
+/* Modo claro u oscuro. Respeta lo que tenga configurado el celular
+   la primera vez, y después manda la elección del usuario. */
+const TEMA = 'apptrainner_tema';
+function aplicarTema(t) {
+  document.documentElement.setAttribute('data-tema', t);
+  try { localStorage.setItem(TEMA, t); } catch { /* modo privado */ }
+}
+(function temaInicial() {
+  let t = null;
+  try { t = localStorage.getItem(TEMA); } catch { /* modo privado */ }
+  if (!t) t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'oscuro' : 'claro';
+  document.documentElement.setAttribute('data-tema', t);
+})();
+
+function BotonTema() {
+  const [tema, setTema] = useState(document.documentElement.getAttribute('data-tema') || 'claro');
+  const cambiar = () => { const n = tema === 'oscuro' ? 'claro' : 'oscuro'; setTema(n); aplicarTema(n); };
+  return (
+    <button className="tema" onClick={cambiar} title={tema === 'oscuro' ? 'Pasar a modo claro' : 'Pasar a modo oscuro'}
+      aria-label={tema === 'oscuro' ? 'Pasar a modo claro' : 'Pasar a modo oscuro'}>
+      {tema === 'oscuro' ? '☀' : '☾'}
+    </button>);
+}
+
 /* ---------- avisos y ventanas propias ---------- */
 const Aviso = createContext(null);
 const usarAviso = () => useContext(Aviso);
@@ -511,6 +615,44 @@ class Escudo extends React.Component {
   }
 }
 
+/* ---------- recuperar contraseña ---------- */
+function Recuperar({ token, listo }) {
+  const [nueva, setNueva] = useState('');
+  const [repetir, setRepetir] = useState('');
+  const [ok, setOk] = useState(false);
+  const { avisar } = usarAviso();
+
+  async function guardar() {
+    if (nueva !== repetir) { avisar('Las dos contraseñas no coinciden', 'mal'); return; }
+    try {
+      await api('/recuperar/confirmar', { method: 'POST', body: { token, nueva } });
+      setOk(true);
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  if (ok) return (
+    <div className="centro">
+      <div className="portada"><span className="cifra">✓</span><h1>Listo</h1>
+        <p>Ya podés entrar con tu contraseña nueva.</p></div>
+      <button className="btn" onClick={listo}>Entrar</button>
+    </div>);
+
+  return (
+    <div className="centro">
+      <div className="portada"><h1>Contraseña nueva</h1>
+        <p>Elegí una y volvés a entrar.</p></div>
+      <div className="card">
+        <label>Contraseña nueva<input type="password" autoFocus value={nueva}
+          onChange={e => setNueva(e.target.value)} autoComplete="new-password" />
+          <span className="chico">Mínimo 8 caracteres.</span></label>
+        <label>Repetila<input type="password" value={repetir} onChange={e => setRepetir(e.target.value)}
+          autoComplete="new-password" onKeyDown={e => e.key === 'Enter' && guardar()} /></label>
+        <button className="btn" onClick={guardar} disabled={nueva.length < 8}>Guardar</button>
+        <button className="btn linea" style={{ marginTop: 10 }} onClick={listo}>Volver</button>
+      </div>
+    </div>);
+}
+
 /* ---------- entrada ---------- */
 function Entrar({ onEntrar }) {
   const [modo, setModo] = useState('login');
@@ -518,6 +660,14 @@ function Entrar({ onEntrar }) {
   const [cargando, setCargando] = useState(false);
   const { avisar } = usarAviso();
   const set = k => e => setF({ ...f, [k]: e.target.value });
+
+  async function pedirLink() {
+    if (!f.email.trim()) { avisar('Escribí tu mail primero', 'mal'); return; }
+    try {
+      const r = await api('/recuperar', { method: 'POST', body: { email: f.email } });
+      avisar(r.mensaje || 'Si ese mail tiene cuenta, te llega un link.');
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
 
   async function enviar() {
     setCargando(true);
@@ -551,6 +701,8 @@ function Entrar({ onEntrar }) {
         <button className="btn linea" style={{ marginTop: 10 }}
           onClick={() => setModo(modo === 'login' ? 'registro' : 'login')}>
           {modo === 'login' ? 'Todavía no tengo cuenta' : 'Ya tengo cuenta'}</button>
+        {modo === 'login' &&
+          <button className="olvide" onClick={pedirLink}>Me olvidé la contraseña</button>}
       </div>
     </div>);
 }
@@ -635,7 +787,7 @@ function Grupos({ grupos, recargar, ejercicios, cerrar }) {
 }
 
 /* ---------- banco de ejercicios ---------- */
-function Ejercicios({ ejercicios, grupos, recargar, irAAyuda }) {
+function Ejercicios({ ejercicios, grupos, ejemplos, recargar, irAAyuda }) {
   const [form, setForm] = useState(null);
   const [verGrupos, setVerGrupos] = useState(false);
   const [tope, setTope] = useState(null);
@@ -653,6 +805,18 @@ function Ejercicios({ ejercicios, grupos, recargar, irAAyuda }) {
     } catch (e) {
       if (e.status === 402) { setForm(null); setTope(e.message); } else avisar(e.message, 'mal');
     }
+  }
+
+  async function borrarEjemplos() {
+    if (!await confirmar('¿Borramos los ejercicios de ejemplo?',
+      'Los que ya usaste en alguna rutina se quedan. El resto se va.', 'Sí, borrarlos')) return;
+    try {
+      const r = await api('/ejemplos', { method: 'DELETE' });
+      await recargar();
+      avisar(r.conservados
+        ? `Borramos ${r.ejercicios}. Dejamos ${r.conservados} que ya estás usando.`
+        : `Borramos ${r.ejercicios} ejercicios de ejemplo`);
+    } catch (e) { avisar(e.message, 'mal'); }
   }
 
   async function borrar(ej) {
@@ -685,6 +849,14 @@ function Ejercicios({ ejercicios, grupos, recargar, irAAyuda }) {
     <p className="suave" style={{ marginBottom: 12 }}>
       {ejercicios.length} ejercicio{ejercicios.length === 1 ? '' : 's'} cargados. El video se pega una sola vez.
     </p>
+    {!!ejemplos &&
+      <div className="recordatorio">
+        <h3>Tenés {ejemplos} ejercicios de ejemplo</h3>
+        <p className="suave">Están para que puedas armar una rutina hoy mismo. Si vas a cargar los tuyos, sacalos de una.</p>
+        <button className="btn linea chico" style={{ marginTop: 10 }} onClick={borrarEjemplos}>
+          Borrar los de ejemplo</button>
+      </div>}
+
     <div className="barra-sup">
       <button className="btn linea chico" onClick={() => setVerGrupos(true)}>
         Grupos musculares ({grupos.length})</button>
@@ -1085,6 +1257,8 @@ function Ficha({ id, volver, abrirRutina, abrirProgreso, clientes, plantillas, r
   const [tope, setTope] = useState(null);
   const [impresion, setImpresion] = useState(null);
   const [indic, setIndic] = useState(null);
+  const [renovar, setRenovar] = useState(null);
+  const [resumen, setResumen] = useState(false);
   const [verIndic, setVerIndic] = useState(false);
   const [historial, setHistorial] = useState(null);
   const { avisar, confirmar } = usarAviso();
@@ -1101,6 +1275,7 @@ function Ficha({ id, volver, abrirRutina, abrirProgreso, clientes, plantillas, r
 
   if (!c) return <p className="suave">Cargando...</p>;
   if (impresion) return <Impresion rutina={impresion} alumno={c.nombre} cerrar={() => setImpresion(null)} />;
+  if (resumen) return <ResumenMes cliente={c} cerrar={() => setResumen(false)} />;
   const link = location.origin + '/r/' + c.token;
 
   async function crearRutina() {
@@ -1118,6 +1293,20 @@ function Ficha({ id, volver, abrirRutina, abrirProgreso, clientes, plantillas, r
     try {
       const r = await api('/rutinas/' + duplicar + '/duplicar', { method: 'POST', body: { cliente_id: destinoId } });
       setDuplicar(null); avisar('Rutina copiada'); abrirRutina(r.id);
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
+
+  // Renovar: misma rutina para el mismo alumno, arrastrando lo que ya levantó.
+  async function hacerRenovacion(conPesos) {
+    try {
+      const r = await api('/rutinas/' + renovar.id + '/duplicar', { method: 'POST', body: {
+        cliente_id: id, con_pesos: conPesos,
+        nombre: 'Mes ' + (c.rutinas.length + 1) } });
+      setRenovar(null);
+      avisar(conPesos && r.pesos_copiados
+        ? `Rutina nueva con los pesos de ${r.pesos_copiados} ejercicios`
+        : 'Rutina nueva creada');
+      abrirRutina(r.id);
     } catch (e) { avisar(e.message, 'mal'); }
   }
 
@@ -1299,6 +1488,7 @@ function Ficha({ id, volver, abrirRutina, abrirProgreso, clientes, plantillas, r
         <div className="acciones" style={{ marginTop: 12 }}>
           <button className="btn linea chico" onClick={() => abrirRutina(r.id)}>Editar</button>
           <button className="btn linea chico" onClick={() => imprimir(r.id)}>Imprimir</button>
+          <button className="btn chico" onClick={() => setRenovar(r)}>Renovar</button>
           <button className="btn linea chico" onClick={() => setDuplicar(r.id)}>Copiar a otro</button>
           <button className="btn linea chico" onClick={() => guardarPlantilla(r.id, r.nombre)}>Guardar plantilla</button>
           <button className="btn riesgo chico" onClick={() => borrarRutina(r)}>Eliminar</button>
@@ -1307,7 +1497,10 @@ function Ficha({ id, volver, abrirRutina, abrirProgreso, clientes, plantillas, r
 
     <div className="row" style={{ margin: '22px 0 10px' }}>
       <h3>Lo que carga tu alumno</h3>
-      <button className="btn chico" onClick={() => abrirProgreso(id)}>Ver detalle</button>
+      <div className="acciones">
+        <button className="btn linea chico" onClick={() => setResumen(true)}>Resumen del mes</button>
+        <button className="btn chico" onClick={() => abrirProgreso(id)}>Ver detalle</button>
+      </div>
     </div>
     {!c.registros.length && !c.seguimiento.length &&
       <div className="vacio"><p>Cuando entrene y anote sus series, vas a verlas acá semana por semana.</p></div>}
@@ -1383,6 +1576,18 @@ function Ficha({ id, volver, abrirRutina, abrirProgreso, clientes, plantillas, r
         <div className="lista">
           {clientes.map(x => <button className="op" key={x.id} onClick={() => copiarA(x.id)}>{x.nombre}</button>)}
         </div>
+      </Modal>}
+
+    {renovar &&
+      <Modal titulo="Renovar la rutina"
+        sub={'Se crea una copia de "' + renovar.nombre + '" para ' + c.nombre.split(' ')[0] + '.'}
+        cerrar={() => setRenovar(null)}>
+        <p className="suave" style={{ marginBottom: 16 }}>
+          Si traés los pesos, cada ejercicio arranca con lo más pesado que logró, y el alumno lo ve como referencia.
+        </p>
+        <button className="btn" onClick={() => hacerRenovacion(true)}>Renovar con sus pesos</button>
+        <button className="btn linea" style={{ marginTop: 10 }} onClick={() => hacerRenovacion(false)}>
+          Renovar en blanco</button>
       </Modal>}
 
     {indic &&
@@ -1575,6 +1780,65 @@ function Progresograma({ clienteId, nombre, volver, ejercicios }) {
   </div>);
 }
 
+/* Resumen del mes para imprimir: es lo que el entrenador le muestra al alumno
+   cuando llega el momento de renovar. */
+function ResumenMes({ cliente, cerrar }) {
+  useEffect(() => { const t = setTimeout(() => window.print(), 300); return () => clearTimeout(t); }, []);
+
+  const seg = [...(cliente.seguimiento || [])].sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const inicial = seg[0], actual = seg[seg.length - 1];
+  const dif = inicial && actual ? (actual.peso - inicial.peso).toFixed(1) : null;
+
+  // Mejor peso por ejercicio a lo largo del plan.
+  const mejores = {};
+  (cliente.registros || []).forEach(sem => sem.dias.forEach(d => d.ejercicios.forEach(e => {
+    e.series.forEach(x => {
+      if (!mejores[e.nombre] || x.kg > mejores[e.nombre]) mejores[e.nombre] = x.kg;
+    });
+  })));
+  const entrenos = (cliente.registros || []).reduce((n, s) => n + s.dias.length, 0);
+  const a = cliente.asistencia || { presente: 0, ausente: 0 };
+
+  return (
+    <div className="hoja-impresa">
+      <div className="no-imprimir" style={{ marginBottom: 16 }}>
+        <button className="btn" onClick={() => window.print()}>Imprimir o guardar en PDF</button>
+        <button className="btn linea" style={{ marginTop: 8 }} onClick={cerrar}>Volver</button>
+      </div>
+      <h1>{cliente.nombre}</h1>
+      <p className="sub-impresa">Resumen del plan, del {fmt(cliente.inicio)} al {fmtLargo(finPlan(cliente.inicio))}</p>
+
+      <div className="dia-impreso">
+        <h2>Cómo le fue</h2>
+        <table>
+          <tbody>
+            <tr><td>Entrenamientos registrados</td><td><b>{entrenos}</b></td></tr>
+            {(a.presente + a.ausente > 0) &&
+              <tr><td>Asistencia</td><td><b>{a.presente} de {a.presente + a.ausente}</b></td></tr>}
+            {inicial && <tr><td>Peso al empezar</td><td><b>{inicial.peso} kg</b></td></tr>}
+            {actual && seg.length > 1 && <tr><td>Peso actual</td><td><b>{actual.peso} kg</b></td></tr>}
+            {dif !== null && seg.length > 1 &&
+              <tr><td>Diferencia</td><td><b>{dif > 0 ? '+' : ''}{dif} kg</b></td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      {!!Object.keys(mejores).length &&
+        <div className="dia-impreso">
+          <h2>Sus mejores marcas</h2>
+          <table>
+            <thead><tr><th>Ejercicio</th><th>Máximo</th></tr></thead>
+            <tbody>
+              {Object.entries(mejores).sort((x, y) => y[1] - x[1]).slice(0, 12).map(([n, kg]) => (
+                <tr key={n}><td><b>{n}</b></td><td>{kg} kg</td></tr>))}
+            </tbody>
+          </table>
+        </div>}
+
+      <p className="pie-impreso">AppTrainner</p>
+    </div>);
+}
+
 /* ---------- editor de rutina ---------- */
 function Editor({ id, volver, ejercicios, grupos, recargarEjercicios }) {
   const [r, setR] = useState(null);
@@ -1600,7 +1864,8 @@ function Editor({ id, volver, ejercicios, grupos, recargarEjercicios }) {
     try {
       if (form.item_id) {
         await api('/items/' + form.item_id, { method: 'PATCH',
-          body: { series: form.series, reps: form.reps, nota: form.nota } });
+          body: { series: form.series, reps: form.reps, nota: form.nota,
+                  peso_sugerido: form.peso_sugerido } });
         avisar('Ejercicio actualizado');
       } else {
         let ejId = form.ejercicio_id;
@@ -1610,7 +1875,8 @@ function Editor({ id, volver, ejercicios, grupos, recargarEjercicios }) {
           ejId = e.id; await recargarEjercicios();
         }
         await api('/dias/' + form.diaId + '/items', { method: 'POST',
-          body: { ejercicio_id: ejId, series: form.series, reps: form.reps, nota: form.nota } });
+          body: { ejercicio_id: ejId, series: form.series, reps: form.reps, nota: form.nota,
+                  peso_sugerido: form.peso_sugerido } });
         setBusq({ ...busq, [form.diaId]: '' });
         avisar('Ejercicio agregado');
       }
@@ -1687,6 +1953,8 @@ function Editor({ id, volver, ejercicios, grupos, recargarEjercicios }) {
                       ? <div><a className="video" href={it.video_url} target="_blank" rel="noopener">Ver el video</a></div>
                       : <div className="chico">Sin video</div>}
                     {it.nota && <div className="chico">{it.nota}</div>}
+                    {it.peso_sugerido &&
+                      <div className="ultimo">Referencia: <b>{it.peso_sugerido} kg</b></div>}
                     {ultimos[it.ejercicio_id] &&
                       <div className="ultimo">
                         Última vez: <b>{ultimos[it.ejercicio_id].kg} kg × {ultimos[it.ejercicio_id].reps}</b>
@@ -1701,7 +1969,8 @@ function Editor({ id, volver, ejercicios, grupos, recargarEjercicios }) {
                     <button className="mini" onClick={() => reordenar(d, idx, idx + 1)} disabled={idx === d.items.length - 1} title="Bajar">↓</button>
                     <button className="btn linea chico" style={{ padding: '5px 10px', fontSize: 12.5 }}
                       onClick={() => setForm({ item_id: it.id, titulo: it.ejercicio, series: it.series || '',
-                        reps: it.reps || '', nota: it.nota || '', ultimo: ultimos[it.ejercicio_id] })}>Cambiar</button>
+                        reps: it.reps || '', nota: it.nota || '', peso_sugerido: it.peso_sugerido || '',
+                        ultimo: ultimos[it.ejercicio_id] })}>Cambiar</button>
                   </div>
                 </div>
               </div>
@@ -1746,6 +2015,10 @@ function Editor({ id, volver, ejercicios, grupos, recargarEjercicios }) {
           <label>Series<input value={form.series} onChange={e => setForm({ ...form, series: e.target.value })} /></label>
           <label>Repeticiones<input value={form.reps} onChange={e => setForm({ ...form, reps: e.target.value })} /></label>
         </div>
+        <label>Peso de referencia (kg)
+          <input type="number" inputMode="decimal" value={form.peso_sugerido || ''} placeholder="Opcional"
+            onChange={e => setForm({ ...form, peso_sugerido: e.target.value })} />
+          <span className="chico">El alumno lo ve como punto de partida.</span></label>
         <label>Nota para el alumno<input value={form.nota} placeholder="Opcional"
           onChange={e => setForm({ ...form, nota: e.target.value })} /></label>
         <button className="btn" onClick={guardarItem}>{form.item_id ? 'Guardar cambios' : 'Agregar a la rutina'}</button>
@@ -1767,10 +2040,58 @@ function Editor({ id, volver, ejercicios, grupos, recargarEjercicios }) {
   </div>);
 }
 
+/* La semana entera de un vistazo: es donde el entrenador ve dónde le queda
+   un hueco para meter un alumno nuevo. */
+function VistaSemana({ turnos, editar }) {
+  const dias = [1, 2, 3, 4, 5, 6, 0];
+  const enMinutos = h => { const [a, b] = String(h).split(':').map(Number); return (a || 0) * 60 + (b || 0); };
+  const conTurnos = turnos.length ? turnos : [];
+  const desde = conTurnos.length ? Math.min(...conTurnos.map(t => enMinutos(t.hora))) : 8 * 60;
+  const hasta = conTurnos.length
+    ? Math.max(...conTurnos.map(t => enMinutos(t.hora) + (t.duracion || 60))) : 20 * 60;
+  const inicio = Math.floor(Math.max(0, desde - 30) / 60);
+  const fin = Math.ceil(Math.min(24 * 60, hasta + 30) / 60);
+  const horas = [];
+  for (let h = inicio; h <= fin; h++) horas.push(h);
+  const alto = Math.max(220, (fin - inicio) * 46);
+  const y = min => ((min - inicio * 60) / ((fin - inicio) * 60)) * alto;
+
+  if (!turnos.length) return <div className="vacio"><p>Todavía no cargaste horarios.</p></div>;
+
+  return (
+    <div className="semana-grilla" style={{ '--alto': alto + 'px' }}>
+      <div className="horas">
+        {horas.map(h => (
+          <div className="hora-marca" key={h} style={{ top: y(h * 60) + 'px' }}>
+            {String(h).padStart(2, '0')}:00</div>))}
+      </div>
+      {dias.map(d => {
+        const delDia = turnos.filter(t => t.dia_semana === d);
+        return (
+          <div className="col-dia" key={d}>
+            <div className="cabeza">{DIAS[d].slice(0, 3)}</div>
+            <div className="pista">
+              {horas.map(h => <div className="linea" key={h} style={{ top: y(h * 60) + 'px' }} />)}
+              {delDia.map(t => (
+                <button className={'bloque' + (t.choca ? ' choca' : '')} key={t.id}
+                  onClick={() => editar(t)}
+                  style={{ top: y(enMinutos(t.hora)) + 'px',
+                           height: Math.max(26, ((t.duracion || 60) / ((fin - inicio) * 60)) * alto) + 'px' }}>
+                  <span className="hora-bloque">{t.hora}</span>
+                  <span className="quien-bloque">{t.alumno}</span>
+                </button>))}
+            </div>
+          </div>);
+      })}
+    </div>);
+}
+
 /* ---------- agenda ---------- */
 function Agenda({ clientes, recargarTurnos }) {
+  const [vista, setVista] = useState('dia');
   const [fecha, setFecha] = useState(hoyISO());
   const [dia, setDia] = useState(null);
+  const [todos, setTodos] = useState([]);
   const [form, setForm] = useState(null);
   const { avisar, confirmar } = usarAviso();
 
@@ -1779,6 +2100,7 @@ function Agenda({ clientes, recargarTurnos }) {
   const cargar = useCallback(async () => {
     try {
       setDia(await api('/turnos?fecha=' + fecha));
+      setTodos(await api('/turnos'));
       const marcas = await api('/asistencias?fecha=' + fecha);
       const mapa = {};
       marcas.forEach(m => { mapa[m.cliente_id] = m.estado; });
@@ -1835,7 +2157,7 @@ function Agenda({ clientes, recargarTurnos }) {
   const choques = turnos.filter(t => t.choca);
 
   return (<div>
-    <div className="row" style={{ marginBottom: 14 }}>
+    <div className="row" style={{ marginBottom: 12 }}>
       <h2>Tu agenda</h2>
       <button className="btn chico" disabled={!clientes.length}
         onClick={() => setForm({ cliente_id: clientes[0].id,
@@ -1843,6 +2165,14 @@ function Agenda({ clientes, recargarTurnos }) {
         Sumar turno</button>
     </div>
 
+    <div className="barra-sup">
+      <button className={'chip' + (vista === 'dia' ? ' on' : '')} onClick={() => setVista('dia')}>Por día</button>
+      <button className={'chip' + (vista === 'semana' ? ' on' : '')} onClick={() => setVista('semana')}>Toda la semana</button>
+    </div>
+
+    {vista === 'semana' && <VistaSemana turnos={todos} editar={setForm} />}
+
+    {vista === 'dia' && <div>
     <div className="navdia">
       <button className="mini" onClick={() => mover(-1)} title="Día anterior">‹</button>
       <div style={{ textAlign: 'center', flex: 1 }}>
@@ -1887,6 +2217,8 @@ function Agenda({ clientes, recargarTurnos }) {
           <button className="btn riesgo chico" onClick={() => borrar(t)}>Quitar</button>
         </div>
       </div>))}
+
+    </div>}
 
     {form &&
       <Modal titulo={form.id ? 'Editar turno' : 'Nuevo turno'}
@@ -2017,7 +2349,8 @@ function EditorPlantilla({ id, volver, ejercicios, grupos, recargarEjercicios, r
                       disabled={idx === d.items.length - 1}>↓</button>
                     <button className="btn linea chico" style={{ padding: '5px 10px', fontSize: 12.5 }}
                       onClick={() => setForm({ item_id: it.id, titulo: it.ejercicio, series: it.series || '',
-                        reps: it.reps || '', nota: it.nota || '', ultimo: ultimos[it.ejercicio_id] })}>Cambiar</button>
+                        reps: it.reps || '', nota: it.nota || '', peso_sugerido: it.peso_sugerido || '',
+                        ultimo: ultimos[it.ejercicio_id] })}>Cambiar</button>
                   </div>
                 </div>
               </div>
@@ -2194,7 +2527,30 @@ function Ayuda({ perfil, recargarPerfil }) {
   const [tipo, setTipo] = useState('pregunta');
   const [texto, setTexto] = useState('');
   const [claves, setClaves] = useState(null);
+  const [bajando, setBajando] = useState(false);
   const { avisar } = usarAviso();
+
+  // Arma el Excel en el navegador con lo que devuelve el servidor.
+  async function exportar() {
+    setBajando(true);
+    try {
+      const d = await api('/exportar');
+      const libro = XLSX.utils.book_new();
+      const hoja = (nombre, filas) => {
+        if (!filas || !filas.length) return;
+        XLSX.utils.book_append_sheet(libro, XLSX.utils.json_to_sheet(filas), nombre);
+      };
+      hoja('Alumnos', d.clientes);
+      hoja('Ejercicios', d.ejercicios);
+      hoja('Rutinas', d.rutinas);
+      hoja('Agenda', (d.turnos || []).map(t => ({ ...t, dia: DIAS[t.dia_semana] })));
+      hoja('Registros', d.registros);
+      hoja('Peso corporal', d.seguimiento);
+      if (!libro.SheetNames.length) { avisar('Todavía no hay datos para exportar', 'mal'); return; }
+      XLSX.writeFile(libro, 'apptrainner-' + d.generado.slice(0, 10) + '.xlsx');
+      avisar('Listo, se descargó tu archivo');
+    } catch (e) { avisar(e.message, 'mal'); } finally { setBajando(false); }
+  }
 
   async function guardarCapacidad(capacidad) {
     try { await api('/perfil', { method: 'PATCH', body: { capacidad } }); await recargarPerfil();
@@ -2264,6 +2620,17 @@ function Ayuda({ perfil, recargarPerfil }) {
           document.getElementById('consulta').scrollIntoView({ behavior: 'smooth' }); }}>
           Quiero pasar al plan completo</button>
       </div>}
+
+    <div className="card">
+      <div className="row">
+        <h3>Tus datos</h3>
+        <button className="btn linea chico" onClick={exportar} disabled={bajando}>
+          {bajando ? 'Preparando...' : 'Bajar todo en Excel'}</button>
+      </div>
+      <p className="suave" style={{ marginTop: 6 }}>
+        Un archivo con tus alumnos, ejercicios, rutinas, agenda y todo lo que registraron. Es tuyo, llevátelo cuando quieras.
+      </p>
+    </div>
 
     <div className="card">
       <div className="row">
@@ -2382,6 +2749,90 @@ function Admin({ perfil }) {
   </div>);
 }
 
+/* ---------- métricas del producto (admin) ---------- */
+function Metricas() {
+  const [m, setM] = useState(null);
+  const { avisar } = usarAviso();
+  useEffect(() => { api('/admin/metricas').then(setM).catch(e => avisar(e.message, 'mal')); }, [avisar]);
+  if (!m) return <p className="suave">Cargando...</p>;
+
+  const maxAlta = Math.max(1, ...m.altas.map(a => a.n));
+  const dato = (etiqueta, valor, extra) => (
+    <div className="dato-grande">
+      <span className="cifra-dato">{valor}</span>
+      <span className="etiqueta-dato">{etiqueta}</span>
+      {extra && <span className="chico">{extra}</span>}
+    </div>);
+
+  return (<div>
+    <h2>Cómo viene el producto</h2>
+    <p className="suave" style={{ marginBottom: 18 }}>Todo lo que pasa en AppTrainner, de un vistazo.</p>
+
+    <div className="tablero">
+      {dato('Cuentas', m.cuentas.total, `${m.cuentas.pagas} pagas, ${m.cuentas.gratis} gratis`)}
+      {dato('Alumnos cargados', m.volumen.alumnos)}
+      {dato('Alumnos que entrenaron', m.uso.alumnos_activos_7, 'últimos 7 días')}
+      {dato('Series anotadas', m.uso.series_ultimos_7, 'últimos 7 días')}
+    </div>
+
+    <div className="card">
+      <h3>Cuentas nuevas por semana</h3>
+      <div className="barras">
+        {m.altas.map((a, i) => (
+          <div className="barra-col" key={i} title={a.n + ' cuentas'}>
+            <div className="col" style={{ height: Math.max(3, (a.n / maxAlta) * 90) + 'px' }} />
+            <span className="chico">{a.n}</span>
+          </div>))}
+      </div>
+      <p className="chico" style={{ marginTop: 6 }}>De hace 8 semanas hasta hoy.</p>
+    </div>
+
+    <div className="card">
+      <h3>Qué hay cargado</h3>
+      <table className="tabla">
+        <tbody>
+          <tr><td>Ejercicios</td><td><b>{m.volumen.ejercicios}</b></td></tr>
+          <tr><td>Rutinas</td><td><b>{m.volumen.rutinas}</b></td></tr>
+          <tr><td>Plantillas</td><td><b>{m.volumen.plantillas}</b></td></tr>
+          <tr><td>Turnos en agendas</td><td><b>{m.volumen.turnos}</b></td></tr>
+          <tr><td>Series registradas</td><td><b>{m.volumen.series}</b></td></tr>
+          <tr><td>Alumnos activos (30 días)</td><td><b>{m.uso.alumnos_activos_30}</b></td></tr>
+          <tr><td>Consultas sin responder</td><td><b>{m.uso.consultas_abiertas}</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    {!!m.dormidas.length &&
+      <div className="card" style={{ borderLeftColor: 'var(--carmin)' }}>
+        <h3>Cuentas dormidas</h3>
+        <p className="suave" style={{ marginBottom: 8 }}>
+          Sin actividad de sus alumnos hace más de 15 días. Son las que están por irse.
+        </p>
+        {m.dormidas.map((c, i) => (
+          <p className="suave" key={i} style={{ marginTop: 4 }}>
+            <b style={{ color: 'var(--tinta)' }}>{c.nombre}</b> — {c.email}
+            {c.ultima_serie ? `, última actividad el ${fmt(c.ultima_serie)}` : ', nunca registró nada'}
+          </p>))}
+      </div>}
+
+    <div className="card">
+      <h3>Quién le saca más jugo</h3>
+      <table className="tabla">
+        <thead><tr><th>Entrenador</th><th>Plan</th><th>Alumnos</th><th>Última actividad</th></tr></thead>
+        <tbody>
+          {m.ranking.map((c, i) => (
+            <tr key={i}>
+              <td>{c.nombre}</td>
+              <td><span className={'globo ' + (c.plan === 'activo' ? 'ok' : '')}>{c.plan}</span></td>
+              <td><b>{c.alumnos}</b></td>
+              <td className="chico">{c.ultima_serie ? fmt(c.ultima_serie) : '—'}</td>
+            </tr>))}
+        </tbody>
+      </table>
+    </div>
+  </div>);
+}
+
 /* ---------- consultas recibidas (admin) ---------- */
 function Consultas() {
   const [lista, setLista] = useState(null);
@@ -2486,7 +2937,7 @@ function FilaSerie({ n, objetivo, guardada, onGuardar, onBorrar }) {
     </div>);
 }
 
-function EjercicioAlumno({ item, series, observacion, onGuardar, onBorrar, onObservar }) {
+function EjercicioAlumno({ item, series, observacion, soloLectura, onGuardar, onBorrar, onObservar }) {
   const [abierta, setAbierta] = useState(!!observacion);
   const [nota, setNota] = useState(observacion || '');
   const [guardandoNota, setGuardandoNota] = useState(false);
@@ -2519,13 +2970,27 @@ function EjercicioAlumno({ item, series, observacion, onGuardar, onBorrar, onObs
         <div className="series">{item.series}×{item.reps}</div>
       </div>
 
+      {item.peso_sugerido &&
+        <p className="referencia">Arrancá con <b>{item.peso_sugerido} kg</b>, que es lo que venías levantando.</p>}
+
       <div className="planilla">
-        {filas.map(n => (
-          <FilaSerie key={n} n={n} objetivo={item.reps} guardada={porNumero[n]}
-            onGuardar={onGuardar.bind(null, item)} onBorrar={onBorrar} />))}
+        {soloLectura
+          ? (hechas.length
+              ? hechas.sort((a, b) => (a.numero || 1) - (b.numero || 1)).map(x => (
+                  <div className="serie hecha" key={x.id}>
+                    <span className="n">{x.numero || 1}</span>
+                    <span className="dato"><b>{x.kg}</b> kg</span>
+                    <span className="dato"><b>{x.reps}</b> reps</span>
+                  </div>))
+              : <p className="chico">Sin registros de esta semana.</p>)
+          : filas.map(n => (
+              <FilaSerie key={n} n={n} objetivo={item.reps} guardada={porNumero[n]}
+                onGuardar={onGuardar.bind(null, item)} onBorrar={onBorrar} />))}
       </div>
 
-      {!abierta
+      {soloLectura
+        ? (observacion ? <div className="nota-alumno" style={{ marginTop: 8 }}><p>{observacion}</p></div> : null)
+        : !abierta
         ? <button className="agregar-nota" onClick={() => setAbierta(true)}>
             {observacion ? 'Ver mi observación' : '+ Anotar cómo te fue'}</button>
         : (<div className="nota-alumno">
@@ -2548,8 +3013,11 @@ function VistaAlumno({ token }) {
   const [verIndicacion, setVerIndicacion] = useState(false);
   const { avisar } = usarAviso();
 
+  const [semana, setSemana] = useState(null);   // null = la que estoy entrenando
+
   const cargar = useCallback(() => {
-    fetch('/api/alumno/' + token).then(r => r.json())
+    fetch('/api/alumno/' + token + (semana ? '?semana=' + semana : ''))
+      .then(r => r.json())
       .then(x => {
         if (x.error) { setError(x.error); return; }
         setD(x);
@@ -2557,7 +3025,7 @@ function VistaAlumno({ token }) {
         if (x.peso_hoy) setPeso(String(x.peso_hoy));
       })
       .catch(() => setError('No pudimos cargar tu rutina.'));
-  }, [token]);
+  }, [token, semana]);
   useEffect(cargar, [cargar]);
 
   async function pedir(ruta, opciones = {}) {
@@ -2617,7 +3085,8 @@ function VistaAlumno({ token }) {
   };
 
   return (<div>
-    <div className="topbar"><div className="brand"><h1>AppTrainner</h1><span className="hola">tu rutina</span></div></div>
+    <div className="topbar"><div className="brand"><h1>AppTrainner</h1><span className="hola">tu rutina</span>
+      <div className="derecha"><BotonTema /></div></div></div>
     <div className="wrap angosto">
       <h2>Hola, {(d.nombre || '').split(' ')[0]}</h2>
 
@@ -2647,7 +3116,24 @@ function VistaAlumno({ token }) {
       {!d.rutina
         ? <div className="vacio" style={{ marginTop: 16 }}><p>Tu profe todavía no cargó tu rutina. Escribile y avisale.</p></div>
         : (<div>
-          <p className="suave" style={{ marginBottom: 18 }}>{d.rutina.nombre}, semana {d.semana}</p>
+          <div className="navsemana">
+            <button className="mini" onClick={() => setSemana(Math.max(1, d.semana - 1))}
+              disabled={d.semana <= 1} title="Semana anterior">‹</button>
+            <div className="centro-sem">
+              <b>Semana {d.semana}</b>
+              {d.semana === d.semana_en_curso
+                ? <span className="globo ok">la que estás haciendo</span>
+                : d.semana < d.semana_en_curso
+                  ? <span className="globo">ya pasó</span>
+                  : <span className="globo aviso">todavía no</span>}
+            </div>
+            <button className="mini" onClick={() => setSemana(Math.min(d.semanas_totales, d.semana + 1))}
+              disabled={d.semana >= d.semanas_totales} title="Semana siguiente">›</button>
+          </div>
+          {d.semana !== d.semana_en_curso &&
+            <button className="btn linea chico" style={{ marginBottom: 14 }}
+              onClick={() => setSemana(null)}>Volver a mi semana</button>}
+          <p className="suave" style={{ marginBottom: 18 }}>{d.rutina.nombre}</p>
           {d.rutina.dias.map((dia, i) => (
             <div className="dia" key={dia.id}>
               <div className="row">
@@ -2656,8 +3142,8 @@ function VistaAlumno({ token }) {
               </div>
               {dia.items.map(it => (
                 <EjercicioAlumno key={it.id} item={it} series={d.series || []}
-                  observacion={obsDe(it)} onGuardar={guardarSerie}
-                  onBorrar={borrarSerie} onObservar={observar} />))}
+                  observacion={obsDe(it)} soloLectura={d.semana !== d.semana_en_curso}
+                  onGuardar={guardarSerie} onBorrar={borrarSerie} onObservar={observar} />))}
             </div>))}
         </div>)}
 
@@ -2682,7 +3168,9 @@ function VistaAlumno({ token }) {
 /* ---------- app ---------- */
 function App() {
   const ruta = location.pathname.match(/^\/r\/([A-Za-z0-9]+)/);
-  const tokenAlumno = ruta ? ruta[1] : new URLSearchParams(location.search).get('alumno');
+  const params = new URLSearchParams(location.search);
+  const tokenAlumno = ruta ? ruta[1] : params.get('alumno');
+  const [tokenRecuperar, setTokenRecuperar] = useState(params.get('recuperar'));
 
   const [entrado, setEntrado] = useState(!!sesion);
   const [perfil, setPerfil] = useState(null);
@@ -2690,6 +3178,7 @@ function App() {
   const [clientes, setClientes] = useState([]);
   const [ejercicios, setEjercicios] = useState([]);
   const [grupos, setGrupos] = useState([]);
+  const [ejemplos, setEjemplos] = useState(0);
   const [plantillas, setPlantillas] = useState([]);
   const [clienteId, setClienteId] = useState(null);
   const [rutinaId, setRutinaId] = useState(null);
@@ -2700,7 +3189,7 @@ function App() {
     try { setClientes(await api('/clientes')); } catch (e) { avisar(e.message, 'mal'); }
   }, [avisar]);
   const recargarEjercicios = useCallback(async () => {
-    try { const r = await api('/ejercicios'); setEjercicios(r.ejercicios); setGrupos(r.grupos); }
+    try { const r = await api('/ejercicios'); setEjercicios(r.ejercicios); setGrupos(r.grupos); setEjemplos(r.ejemplos || 0); }
     catch (e) { avisar(e.message, 'mal'); }
   }, [avisar]);
   const recargarPlantillas = useCallback(async () => {
@@ -2722,13 +3211,15 @@ function App() {
   function salir() { localStorage.removeItem(CLAVE); sesion = null; location.href = '/'; }
 
   if (tokenAlumno) return <VistaAlumno token={tokenAlumno} />;
+  if (tokenRecuperar)
+    return <Recuperar token={tokenRecuperar} listo={() => { setTokenRecuperar(null); history.replaceState({}, '', '/'); }} />;
   if (!entrado) return <Entrar onEntrar={() => setEntrado(true)} />;
   if (perfil && perfil.plan === 'pausado') return <Pausada perfil={perfil} salir={salir} />;
 
   const esAdmin = perfil && perfil.rol === 'admin';
   const tabs = [['alumnos', 'Alumnos'], ['agenda', 'Agenda'], ['ejercicios', 'Ejercicios'],
                 ['plantillas', 'Plantillas'], ['ayuda', 'Ayuda']];
-  if (esAdmin) tabs.push(['admin', 'Cuentas'], ['consultas', 'Consultas']);
+  if (esAdmin) tabs.push(['admin', 'Cuentas'], ['consultas', 'Consultas'], ['metricas', 'Métricas']);
 
   // Al cambiar de pestaña se refrescan los datos que esa vista necesita.
   function irA(k) {
@@ -2744,7 +3235,8 @@ function App() {
     ['alumnos', 'ejercicios', 'plantillas', 'admin'].includes(tab);
 
   let contenido;
-  if (tab === 'consultas' && esAdmin) contenido = <Consultas />;
+  if (tab === 'metricas' && esAdmin) contenido = <Metricas />;
+  else if (tab === 'consultas' && esAdmin) contenido = <Consultas />;
   else if (tab === 'ayuda') contenido = perfil
     ? <Ayuda perfil={perfil} recargarPerfil={recargarPerfil} /> : <p className="suave">Cargando...</p>;
   else if (tab === 'admin' && esAdmin) contenido = <Admin perfil={perfil} />;
@@ -2755,8 +3247,8 @@ function App() {
       ejercicios={ejercicios} grupos={grupos} recargarEjercicios={recargarEjercicios}
       irAAyuda={() => irA('ayuda')} />;
   else if (tab === 'ejercicios') contenido =
-    <Ejercicios ejercicios={ejercicios} grupos={grupos} recargar={recargarEjercicios}
-      irAAyuda={() => irA('ayuda')} />;
+    <Ejercicios ejercicios={ejercicios} grupos={grupos} ejemplos={ejemplos}
+      recargar={recargarEjercicios} irAAyuda={() => irA('ayuda')} />;
   else if (progresoId) contenido =
     <Progresograma clienteId={progresoId} ejercicios={ejercicios}
       nombre={(clientes.find(c => c.id === progresoId) || {}).nombre || 'tu alumno'}
@@ -2777,7 +3269,10 @@ function App() {
       <div className="brand">
         <h1>AppTrainner</h1>
         <span className="hola">{perfil ? perfil.nombre : ''}</span>
-        <button onClick={salir}>Salir</button>
+        <div className="derecha">
+          <BotonTema />
+          <button onClick={salir}>Salir</button>
+        </div>
       </div>
       <div className="tabs">
         {tabs.map(([k, t]) => (
