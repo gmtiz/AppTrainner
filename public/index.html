@@ -6,96 +6,152 @@
 <title>AppTrainner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Chivo:wght@600;700;900&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+  /* =========================================================
+     AppTrainner — paleta "blanco y naranja"
+     Papel cálido, tarjetas blancas, naranja solo para lo que
+     se toca o lo que hay que mirar. Títulos en Archivo,
+     texto en Public Sans.
+     ========================================================= */
   :root{
-    --papel:#EDF0F3;        /* hoja cuadriculada */
-    --grilla:#DDE3E9;
+    --papel:#FBF9F7;
     --hoja:#FFFFFF;
-    --tinta:#0F2231;        /* azul tinta, casi negro pero con temperatura */
-    --gris:#5E7185;
-    --borde:#D3DBE3;
-    --cobalto:#1B5FD0;      /* la lapicera: acciones y números */
-    --cobalto-suave:#E8EFFB;
-    --carmin:#C42B3E;       /* solo errores y borrados */
-    --carmin-suave:#FBEAEC;
-    --barra:#0F2231;        /* fondo de la barra superior */
-    --sobre-barra:#FFFFFF;
-    --barra-suave:#8FA6BA;
+    --borde:#EDE7E1;
+    --tinta:#1A1410;
+    --gris:#6E6259;
+    --acento:#E8621F;          /* rellenos y cifras grandes */
+    --acento-texto:#B4470F;    /* el mismo naranja, legible en tamaño chico */
+    --acento-hover:#C94F12;
+    --suave:#FFF0E6;
+    --sobre-acento:#FFFFFF;
+    --aviso:#B4741C;
+    --aviso-texto:#8A5A13;
+    --aviso-suave:#FDF2E0;
+    --carmin:#A4243B;          /* borrar y errores: lejos del naranja a propósito */
+    --carmin-suave:#FBEDEF;
+    --carmin-borde:#EFD3D9;
+    --verde:#2F7A55;           /* crear algo nuevo dentro de una lista */
+    --nav:#FFFFFF;
+    --nav-tinta:#1A1410;
+    --nav-gris:#6F635A;
+    --nav-linea:#EDE7E1;
+    --marca:rgba(255,255,255,.6);
+    --globo-fondo:#F2EDE8;
+    --borde-fuerte:#E0C9B8;
+    --suave-hover:#FFE3D1;
+    --linea-video:#F5CDB2;
+    --mango:#CFC2B6;
+    --r:10px;
+    --r-chico:8px;
+    --som:0 1px 2px rgba(26,20,16,.05);
+    --som-alta:0 10px 34px rgba(26,20,16,.16);
+    --tit:'Archivo';
   }
-  /* Modo oscuro: misma hoja cuadriculada, de noche. Pensado para gimnasios
-     con luz baja y celulares con poca batería. */
+  /* Modo oscuro: la misma paleta de noche, para gimnasios con luz baja. */
   html[data-tema="oscuro"]{
-    --papel:#101A22;
-    --grilla:#1A2733;
-    --hoja:#17222C;
-    --tinta:#E8EEF3;
-    --gris:#93A7B8;
-    --borde:#27343F;
-    --cobalto:#5B9BFF;
-    --cobalto-suave:#1B2E45;
-    --carmin:#F0798A;
-    --carmin-suave:#3A1F26;
-    --barra:#0A1219;
-    --sobre-barra:#E8EEF3;
-    --barra-suave:#7F94A6;
+    --papel:#16120F;
+    --hoja:#1E1915;
+    --borde:#332B24;
+    --tinta:#F4EFEA;
+    --gris:#A89789;
+    --acento:#FF7F42;
+    --acento-texto:#FF9963;
+    --acento-hover:#FF9963;
+    --suave:#3A2415;
+    --sobre-acento:#231A14;
+    --aviso:#E0A340;
+    --aviso-texto:#E0A340;
+    --aviso-suave:#3A2E18;
+    --carmin:#F0879B;
+    --carmin-suave:#3B1D24;
+    --carmin-borde:#5A2C36;
+    --verde:#5FBF8E;
+    --nav:#1E1915;
+    --nav-tinta:#F4EFEA;
+    --nav-gris:#A89789;
+    --nav-linea:#332B24;
+    --marca:rgba(0,0,0,.4);
+    --globo-fondo:#2C2520;
+    --borde-fuerte:#54463B;
+    --suave-hover:#4A2C18;
+    --linea-video:#6B4326;
+    --mango:#5C4E43;
+    --som:0 1px 2px rgba(0,0,0,.4);
+    --som-alta:0 10px 34px rgba(0,0,0,.5);
     color-scheme:dark;
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
   body{
-    background-color:var(--papel);
-    background-image:
-      linear-gradient(var(--grilla) 1px, transparent 1px),
-      linear-gradient(90deg, var(--grilla) 1px, transparent 1px);
-    background-size:28px 28px;
-    background-position:-1px -1px;
+    background:var(--papel);
     font-family:'Public Sans',system-ui,-apple-system,sans-serif;
     color:var(--tinta);
     font-size:16px;
     line-height:1.55;
     -webkit-font-smoothing:antialiased;
   }
-  h1,h2,h3{margin:0;font-family:'Chivo',system-ui,sans-serif;font-weight:700;letter-spacing:-.02em;line-height:1.15}
-  h1{font-size:25px} h2{font-size:24px} h3{font-size:17px}
+  h1,h2,h3{margin:0;font-family:var(--tit),system-ui,sans-serif;font-weight:700;letter-spacing:-.02em;line-height:1.18}
+  h1{font-size:25px} h2{font-size:24px} h3{font-size:16px}
   p{margin:0}
-  a{color:var(--cobalto)}
+  a{color:var(--acento-texto)}
 
   /* ---------- barra superior ---------- */
   .topbar{
-    background:var(--barra);color:var(--sobre-barra);padding:15px 16px 0;position:sticky;top:0;z-index:20;
-    border-bottom:3px solid var(--cobalto);
+    background:var(--nav);color:var(--nav-tinta);padding:14px 20px 0;position:sticky;top:0;z-index:20;
+    border-bottom:1px solid var(--nav-linea);
   }
-  .brand{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
-  .brand h1{color:var(--sobre-barra);font-family:'Chivo',sans-serif;font-weight:900;font-size:20px;letter-spacing:-.03em}
-  .brand .hola{color:var(--barra-suave);font-size:14px}
+  .brand{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
+  .brand h1{
+    color:var(--nav-tinta);font-family:var(--tit),sans-serif;font-weight:800;
+    font-size:19px;letter-spacing:-.02em;
+  }
+  .brand .hola{color:var(--nav-gris);font-size:13.5px}
   .brand button{
-    background:none;border:0;color:var(--barra-suave);font-family:inherit;
-    font-size:13.5px;font-weight:600;cursor:pointer;padding:6px 2px;border-bottom:1.5px solid transparent;
+    background:none;border:0;color:var(--nav-gris);font-family:inherit;
+    font-size:13.5px;font-weight:600;cursor:pointer;padding:6px 2px;
   }
-  .brand button:hover{color:var(--sobre-barra);border-bottom-color:var(--barra-suave)}
+  .brand button:hover{color:var(--acento)}
   .brand .derecha{margin-left:auto;display:flex;align-items:center;gap:14px}
   .tema{
-    background:none;border:0;cursor:pointer;font-size:16px;line-height:1;padding:4px;
-    color:var(--barra-suave);
+    background:none;border:0;cursor:pointer;font-size:17px;line-height:1;padding:6px 8px;
+    min-height:32px;min-width:32px;color:var(--nav-gris);
   }
-  .tema:hover{color:var(--sobre-barra)}
+  .tema:hover{color:var(--acento)}
   .tabs{display:flex;gap:20px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
   .tabs::-webkit-scrollbar{display:none}
-  @media (max-width:560px){
-    .tabs{gap:16px}
-    .tab{font-size:14.5px}
-    /* Un degradado avisa que hay más pestañas hacia la derecha. */
-    .topbar{position:sticky;background-image:linear-gradient(90deg,transparent 88%,rgba(15,34,49,.9) 100%)}
-  }
   .tab{
-    flex:0 0 auto;background:none;border:0;color:var(--barra-suave);font-family:'Chivo',sans-serif;
-    font-size:15px;font-weight:600;padding:6px 0 11px;cursor:pointer;
-    border-bottom:3px solid transparent;margin-bottom:-3px;white-space:nowrap;letter-spacing:-.01em;
+    flex:0 0 auto;background:none;border:0;color:var(--nav-gris);font-family:var(--tit),sans-serif;
+    font-size:14.5px;font-weight:600;padding:6px 0 11px;cursor:pointer;
+    border-bottom:3px solid transparent;margin-bottom:-1px;white-space:nowrap;letter-spacing:-.01em;
   }
-  .tab.on{color:var(--sobre-barra);border-bottom-color:var(--sobre-barra)}
+  .tab:hover{color:var(--nav-tinta)}
+  .tab.on{color:var(--nav-tinta);border-bottom-color:var(--acento)}
 
-  .wrap{max-width:720px;margin:0 auto;padding:22px 16px 72px}
+  /* ---------- barra inferior (celular) ---------- */
+  .barra-abajo{display:none}
+  @media (max-width:760px){
+    .topbar{padding:12px 16px}
+    .brand{margin-bottom:0}
+    .tabs{display:none}
+    .barra-abajo{
+      display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;
+      background:var(--nav);border-top:1px solid var(--nav-linea);
+      padding:6px 6px calc(6px + env(safe-area-inset-bottom));gap:2px;
+    }
+    .barra-abajo button{
+      flex:1;min-width:0;border:0;background:none;color:var(--nav-gris);
+      font-family:var(--tit),sans-serif;font-size:11.5px;font-weight:600;
+      padding:9px 2px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+      border-top:2px solid transparent;margin-top:-6px;padding-top:11px;
+    }
+    .barra-abajo button.on{color:var(--acento);border-top-color:var(--acento)}
+  }
+
+  .wrap{max-width:720px;margin:0 auto;padding:22px 16px 96px}
+  @media (max-width:760px){
+    .wrap{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+  }
   /* En pantallas grandes las listas se reparten en columnas en vez de quedar
      como una cinta angosta; las vistas de detalle se mantienen legibles. */
   @media (min-width:1000px){
@@ -103,17 +159,17 @@
     .wrap.angosto{max-width:780px}
     .columnas{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;align-items:start}
     .columnas .card,.columnas .dia{margin-bottom:0}
-    .ancho-total{grid-column:1/-1}
   }
   @media (min-width:1400px){ .wrap{max-width:1240px} }
 
-  /* ---------- hojas ---------- */
+  /* ---------- tarjetas ---------- */
   .card{
-    background:var(--hoja);border:1px solid var(--borde);border-left:3px solid var(--cobalto);
-    border-radius:4px;padding:16px 18px;margin-bottom:10px;
+    background:var(--hoja);border:1px solid var(--borde);border-radius:var(--r);
+    box-shadow:var(--som);padding:16px 18px;margin-bottom:12px;
   }
-  .card.tap{cursor:pointer}
-  .card.tap:hover{border-color:var(--cobalto)}
+  .card.tap{cursor:pointer;transition:border-color .12s, box-shadow .12s}
+  .card.tap:hover{border-color:var(--borde-fuerte);box-shadow:0 3px 12px rgba(26,20,16,.09)}
+  .card.peligro{border-left:4px solid var(--carmin)}
   .row{display:flex;justify-content:space-between;align-items:center;gap:12px}
   .suave{color:var(--gris);font-size:14.5px}
   .chico{font-size:13px;color:var(--gris)}
@@ -121,121 +177,168 @@
   /* ---------- botones ---------- */
   button{font-family:inherit}
   .btn{
-    background:var(--cobalto);color:#fff;border:0;border-radius:4px;padding:13px 18px;
-    font-family:'Chivo',sans-serif;font-size:15px;font-weight:700;letter-spacing:-.01em;
+    background:var(--acento);color:var(--sobre-acento);border:0;border-radius:var(--r);padding:13px 18px;
+    font-family:var(--tit),sans-serif;font-size:15px;font-weight:700;letter-spacing:-.01em;
     cursor:pointer;width:100%;
   }
-  .btn:hover{background:#144CAB}
-  .btn.naranja{background:var(--barra);color:var(--sobre-barra)}
-  .btn.naranja:hover{background:#1B3648}
+  .btn:hover{background:var(--acento-hover)}
   .btn.linea{background:var(--hoja);color:var(--tinta);border:1.5px solid var(--borde)}
-  .btn.linea:hover{border-color:var(--tinta)}
-  .btn.riesgo{background:var(--hoja);color:var(--carmin);border:1.5px solid #EBC8CD}
+  .btn.linea:hover{border-color:var(--acento);color:var(--acento)}
+  .btn.suave{background:var(--suave);color:var(--acento-texto)}
+  .btn.suave:hover{background:var(--suave-hover)}
+  .btn.riesgo{background:var(--hoja);color:var(--carmin);border:1.5px solid var(--carmin-borde)}
   .btn.riesgo:hover{background:var(--carmin-suave)}
-  .btn.chico{width:auto;padding:8px 13px;font-size:13.5px}
+  .btn.chico{width:auto;padding:9px 14px;font-size:13.5px}
   .btn:disabled{opacity:.4;cursor:default}
-  .btn:disabled:hover{background:var(--cobalto)}
-  .btn.linea:disabled:hover{background:var(--hoja);border-color:var(--borde)}
-  :focus-visible{outline:2.5px solid var(--cobalto);outline-offset:2px}
+  .btn:disabled:hover{background:var(--acento)}
+  .btn.linea:disabled:hover{background:var(--hoja);border-color:var(--borde);color:var(--tinta)}
+  .btn.riesgo:disabled:hover{background:var(--hoja)}
+  :focus-visible{outline:2.5px solid var(--acento);outline-offset:2px}
 
   /* ---------- formularios ---------- */
   input,select,textarea{
     font-family:inherit;font-size:16px;color:var(--tinta);width:100%;padding:11px 12px;
-    border:1.5px solid var(--borde);border-radius:4px;background:var(--hoja);margin-top:6px;
+    border:1.5px solid var(--borde);border-radius:var(--r-chico);background:var(--hoja);margin-top:6px;
   }
-  input:focus,select:focus,textarea:focus{border-color:var(--cobalto)}
+  input:focus,select:focus,textarea:focus{border-color:var(--acento);outline:none}
   input[type=file]{padding:9px;font-size:14px}
-  label{display:block;font-size:13.5px;font-weight:600;margin-bottom:14px;color:var(--tinta)}
+  label{display:block;font-size:13px;font-weight:600;margin-bottom:14px;color:var(--tinta)}
 
   /* ---------- etiquetas ---------- */
   .globo{
-    display:inline-block;font-family:'Chivo',sans-serif;font-size:12.5px;font-weight:600;
-    padding:2px 9px;border-radius:3px;background:#EAEEF2;color:var(--gris);
+    display:inline-block;font-family:var(--tit),sans-serif;font-size:12px;font-weight:600;
+    padding:3px 10px;border-radius:99px;background:var(--globo-fondo);color:var(--gris);white-space:nowrap;
   }
-  .globo.ok{background:var(--cobalto-suave);color:var(--cobalto)}
-  .globo.aviso{background:#FFF3D9;color:#8A5B00}
+  .globo.ok{background:var(--suave);color:var(--acento-texto)}
+  .globo.aviso{background:var(--aviso-suave);color:var(--aviso-texto)}
   .globo.alerta{background:var(--carmin-suave);color:var(--carmin)}
 
   .vacio{
-    background:var(--hoja);border:1px dashed var(--borde);border-radius:4px;
-    padding:28px 20px;text-align:center;
+    background:var(--hoja);border:1px dashed var(--borde-fuerte);border-radius:var(--r);
+    padding:30px 20px;text-align:center;
   }
   .vacio p{margin-bottom:14px;color:var(--gris)}
 
-  /* ---------- cinta métrica del plan ---------- */
-  .plan{margin-top:12px}
-  .cinta{
-    position:relative;height:26px;background:var(--hoja);border:1px solid var(--borde);
-    border-radius:3px;overflow:hidden;
+  /* ---------- iniciales del alumno ---------- */
+  .inicial{
+    flex:0 0 38px;height:38px;border-radius:99px;background:var(--suave);color:var(--acento-texto);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--tit),sans-serif;font-weight:700;font-size:14px;letter-spacing:-.01em;
   }
-  .cinta .lleno{position:absolute;inset:0 auto 0 0;background:var(--cobalto-suave);border-right:2px solid var(--cobalto)}
-  .cinta .marca{position:absolute;top:0;bottom:0;width:1px;background:var(--borde)}
-  .cinta .marca.alta{background:#B9C4CE}
-  .cinta.cerca .lleno{background:#FFF3D9;border-right-color:#D99B12}
-  .cinta.cumplido .lleno{background:var(--carmin-suave);border-right-color:var(--carmin)}
-  .plan .pie{display:flex;justify-content:space-between;margin-top:5px}
-  .plan .pie b{font-family:'Chivo',sans-serif;font-size:13px;font-weight:700}
+  .inicial.grande{flex-basis:46px;height:46px;font-size:17px}
+  .alumno-cab{display:flex;align-items:center;gap:11px;margin-bottom:12px}
+  .alumno-cab .quien{min-width:0;flex:1}
+  .alumno-cab h3{font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+
+  .ficha-cab{display:flex;align-items:center;gap:13px;flex-wrap:wrap;margin-bottom:8px}
+  .ficha-cab .quien{min-width:0;flex:1 1 180px;display:flex;flex-direction:column}
+  .ficha-cab .btn{margin-left:auto}
+  /* ---------- cinta del plan ---------- */
+  .plan{margin-top:2px}
+  .cinta{
+    position:relative;height:7px;background:var(--borde);border-radius:99px;overflow:hidden;
+  }
+  .cinta .lleno{position:absolute;inset:0 auto 0 0;background:var(--acento);border-radius:99px}
+  .cinta .marca{position:absolute;top:0;bottom:0;width:1px;background:var(--marca)}
+  .cinta.cerca .lleno{background:var(--aviso)}
+  .cinta.cumplido .lleno{background:var(--carmin)}
+  .plan .pie{display:flex;justify-content:space-between;gap:10px;margin-top:6px}
+  .plan .pie b{font-family:var(--tit),sans-serif;font-size:13px;font-weight:700}
   .plan .pie span{font-size:12.5px;color:var(--gris)}
 
   .recordatorio{
-    background:var(--hoja);border:1px solid var(--borde);border-top:3px solid #D99B12;
-    border-radius:4px;padding:14px 16px;margin-bottom:18px;
+    background:var(--aviso-suave);border:1px solid var(--borde);border-left:4px solid var(--aviso);
+    border-radius:var(--r);padding:14px 16px;margin-bottom:18px;
   }
-  .recordatorio h3{font-size:15.5px;margin-bottom:3px}
+  .recordatorio h3{font-size:15px;margin-bottom:2px}
+  .recordatorio .suave{color:#8A6A3A}
+  html[data-tema="oscuro"] .recordatorio .suave{color:#D9BE8C}
+  .recordatorio.alerta{background:var(--carmin-suave);border-left-color:var(--carmin)}
+  .recordatorio.alerta .suave{color:var(--carmin)}
 
   /* ---------- días y ejercicios ---------- */
-  .dia{background:var(--hoja);border:1px solid var(--borde);border-radius:4px;padding:16px 18px;margin-bottom:12px}
+  .dia{
+    background:var(--hoja);border:1px solid var(--borde);border-radius:var(--r);
+    box-shadow:var(--som);padding:16px 18px;margin-bottom:12px;
+  }
   .ej{border-top:1px solid var(--borde);padding:12px 0;background:var(--hoja)}
   .ej.arrastrando{opacity:.35}
-  .ej-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
-  .mango{cursor:grab;color:#B9C4CE;font-size:17px;line-height:1.3;padding-right:8px;user-select:none}
-  .video{color:var(--cobalto);font-weight:600;font-size:13.5px;text-decoration:none;border-bottom:1px solid #B9CCEC}
-  .video:hover{border-bottom-color:var(--cobalto)}
+  .ej-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+  .ej-top > div{min-width:0}
+  .mango{cursor:grab;color:var(--mango);font-size:17px;line-height:1.3;padding-right:8px;user-select:none}
+  .video{color:var(--acento-texto);font-weight:600;font-size:13.5px;text-decoration:none;border-bottom:1px solid var(--linea-video)}
+  .video:hover{border-bottom-color:var(--acento)}
   .series{
-    font-family:'Chivo',sans-serif;font-size:25px;font-weight:900;letter-spacing:-.03em;
+    font-family:var(--tit),sans-serif;font-size:22px;font-weight:800;letter-spacing:-.03em;
     color:var(--tinta);white-space:nowrap;font-variant-numeric:tabular-nums;
   }
   .mini{
-    background:var(--hoja);border:1.5px solid var(--borde);border-radius:3px;width:29px;height:29px;
+    background:var(--hoja);border:1.5px solid var(--borde);border-radius:var(--r-chico);width:30px;height:30px;
     cursor:pointer;font-size:14px;color:var(--gris);padding:0;
   }
-  .mini:hover:not(:disabled){border-color:var(--tinta);color:var(--tinta)}
+  .mini:hover:not(:disabled){border-color:var(--acento);color:var(--acento)}
   .mini:disabled{opacity:.35;cursor:default}
 
-  .lista{border:1.5px solid var(--borde);border-radius:4px;margin-top:8px;background:var(--hoja);overflow:hidden}
+  .lista{border:1.5px solid var(--borde);border-radius:var(--r);margin-top:8px;background:var(--hoja);overflow:hidden}
   .op{
     padding:12px 14px;cursor:pointer;border:0;border-bottom:1px solid var(--borde);
     font-family:inherit;font-size:15px;width:100%;text-align:left;background:none;color:var(--tinta);
   }
   .op:last-child{border-bottom:0}
-  .op:hover{background:var(--cobalto-suave)}
+  .op:hover{background:var(--suave)}
 
   .volver{
     background:none;border:0;color:var(--gris);font-size:14px;font-weight:600;
     cursor:pointer;padding:0 0 14px;font-family:inherit;
   }
-  .volver:hover{color:var(--cobalto)}
+  .volver:hover{color:var(--acento)}
   .dos{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .anotar{display:flex;gap:8px;margin-top:10px}
-  .anotar input{margin-top:0;text-align:center;font-family:'Chivo',sans-serif;font-weight:700;font-size:17px}
+  .anotar input{margin-top:0;min-width:0;text-align:center;font-family:var(--tit),sans-serif;font-weight:700;font-size:17px}
+
+  /* ---------- entrada (login) ---------- */
+  .entrada{min-height:100vh;display:grid;grid-template-columns:1fr}
+  .entrada-lado{
+    background:var(--hoja);border-bottom:1px solid var(--borde);
+    padding:32px 22px;display:flex;flex-direction:column;gap:14px;
+  }
+  .entrada-lado .marca-lado{
+    font-family:var(--tit),sans-serif;font-size:19px;font-weight:800;letter-spacing:-.02em;color:var(--tinta);
+  }
+  .entrada-lado h2{font-size:26px;line-height:1.15;max-width:20ch}
+  .entrada-lado p{color:var(--gris);font-size:15px;max-width:34ch}
+  .entrada-lado .pie-lado{color:var(--gris);font-size:12.5px}
+  .entrada-form{padding:30px 22px 60px;display:flex;flex-direction:column;justify-content:center}
+  .entrada-caja{width:100%;max-width:360px;margin:0 auto}
+  .entrada-caja h3{font-size:21px;margin-bottom:16px}
+  @media (min-width:900px){
+    .entrada{grid-template-columns:1fr 1fr}
+    .entrada-lado{
+      border-bottom:0;border-right:1px solid var(--borde);
+      padding:48px 44px;justify-content:space-between;gap:40px;
+    }
+    .entrada-lado h2{font-size:31px}
+    .entrada-form{padding:48px 44px}
+  }
   .centro{max-width:390px;margin:48px auto;padding:0 16px}
   .portada{margin-bottom:26px}
   .portada .cifra{
-    display:block;font-family:'Chivo',sans-serif;font-size:64px;font-weight:900;
-    letter-spacing:-.05em;color:var(--cobalto);line-height:.9;font-variant-numeric:tabular-nums;
+    display:block;font-family:var(--tit),sans-serif;font-size:56px;font-weight:800;
+    letter-spacing:-.04em;color:var(--acento);line-height:.95;font-variant-numeric:tabular-nums;
   }
-  .portada h1{margin-top:14px;font-size:29px}
+  .portada h1{margin-top:14px;font-size:28px}
   .portada p{color:var(--gris);font-size:15px;margin-top:8px;max-width:32ch}
   .olvide{
-    background:none;border:0;color:var(--gris);font-family:inherit;font-size:13.5px;
-    cursor:pointer;padding:12px 0 0;width:100%;text-decoration:underline;
+    background:none;border:0;color:var(--gris);font-family:inherit;font-size:13px;
+    cursor:pointer;padding:14px 0 0;width:100%;text-decoration:underline;
   }
-  .olvide:hover{color:var(--cobalto)}
+  .olvide:hover{color:var(--acento)}
 
   /* ---------- series ya anotadas ---------- */
-  .hechas{border-left:2px solid var(--cobalto);padding-left:12px;margin-top:10px}
+  .hechas{border-left:2px solid var(--acento);padding-left:12px;margin-top:10px}
   .hechas .fila{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:2px 0}
-  .hechas .fila span{font-family:'Chivo',sans-serif;font-size:14.5px;font-weight:600;font-variant-numeric:tabular-nums}
+  .hechas .fila span{font-family:var(--tit),sans-serif;font-size:14.5px;font-weight:600;font-variant-numeric:tabular-nums}
   .hechas button{
     background:none;border:0;color:var(--gris);font-size:12.5px;cursor:pointer;font-family:inherit;
     text-decoration:underline;
@@ -244,53 +347,62 @@
 
   .semana{margin-bottom:20px}
   .semana > h3{
-    display:inline-block;background:var(--barra);color:var(--sobre-barra);font-size:13.5px;
-    padding:3px 10px;border-radius:3px;margin-bottom:8px;
+    display:inline-block;background:var(--suave);color:var(--acento-texto);font-size:13px;
+    padding:4px 12px;border-radius:99px;margin-bottom:8px;
   }
 
-  /* ---------- navegación por día ---------- */
-  .tablero{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+  /* ---------- tablero de datos ---------- */
+  .tablero{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px;margin-bottom:14px}
   .dato-grande{
-    background:var(--hoja);border:1px solid var(--borde);border-left:3px solid var(--cobalto);
-    border-radius:4px;padding:14px 16px;display:flex;flex-direction:column;gap:2px;
+    background:var(--hoja);border:1px solid var(--borde);border-radius:var(--r);box-shadow:var(--som);
+    padding:14px 16px;display:flex;flex-direction:column;gap:1px;
   }
-  .cifra-dato{font-family:'Chivo',sans-serif;font-size:30px;font-weight:900;letter-spacing:-.03em;
-    color:var(--cobalto);line-height:1;font-variant-numeric:tabular-nums}
-  .etiqueta-dato{font-size:13.5px;font-weight:600}
+  .cifra-dato{
+    font-family:var(--tit),sans-serif;font-size:27px;font-weight:800;letter-spacing:-.03em;
+    color:var(--acento);line-height:1.1;font-variant-numeric:tabular-nums;
+  }
+  .etiqueta-dato{font-size:13px;font-weight:600}
   .barras{display:flex;align-items:flex-end;gap:6px;height:110px;margin-top:10px}
   .barra-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;justify-content:flex-end}
-  .barra-col .col{width:100%;background:var(--cobalto);border-radius:2px 2px 0 0;min-height:3px}
+  .barra-col .col{width:100%;background:var(--acento);border-radius:4px 4px 0 0;min-height:3px}
+
+  /* ---------- agenda semanal ---------- */
   .semana-grilla{
     display:grid;grid-template-columns:44px repeat(7, minmax(72px, 1fr));gap:2px;
-    background:var(--hoja);border:1px solid var(--borde);border-radius:4px;padding:10px 8px 14px;
-    overflow-x:auto;
+    background:var(--hoja);border:1px solid var(--borde);border-radius:var(--r);box-shadow:var(--som);
+    padding:10px 8px 14px;overflow-x:auto;
   }
   .semana-grilla .horas{position:relative;height:calc(var(--alto) + 30px);margin-top:30px}
   .semana-grilla .hora-marca{
     position:absolute;right:6px;font-size:11px;color:var(--gris);transform:translateY(-6px);
-    font-family:'Chivo',sans-serif;
+    font-family:var(--tit),sans-serif;
   }
   .semana-grilla .col-dia{display:flex;flex-direction:column;min-width:0}
   .semana-grilla .cabeza{
-    height:30px;font-family:'Chivo',sans-serif;font-weight:700;font-size:13px;
+    height:30px;font-family:var(--tit),sans-serif;font-weight:700;font-size:13px;
     color:var(--gris);text-align:center;
   }
   .semana-grilla .pista{position:relative;height:var(--alto);border-left:1px solid var(--borde)}
   .semana-grilla .linea{position:absolute;left:0;right:0;height:1px;background:var(--borde);opacity:.6}
   .semana-grilla .bloque{
-    position:absolute;left:2px;right:2px;background:var(--cobalto-suave);border:1px solid var(--cobalto);
-    border-radius:3px;padding:3px 4px;cursor:pointer;overflow:hidden;text-align:left;
+    position:absolute;left:2px;right:2px;background:var(--suave);
+    border:0;border-left:3px solid var(--acento);
+    border-radius:6px;padding:3px 5px;cursor:pointer;overflow:hidden;text-align:left;
     display:flex;flex-direction:column;gap:1px;font-family:inherit;
   }
-  .semana-grilla .bloque:hover{background:var(--cobalto);color:#fff}
-  .semana-grilla .bloque:hover .hora-bloque,.semana-grilla .bloque:hover .quien-bloque{color:#fff}
-  .semana-grilla .bloque.choca{background:var(--carmin-suave);border-color:var(--carmin)}
-  .semana-grilla .hora-bloque{font-family:'Chivo',sans-serif;font-size:11px;font-weight:700;color:var(--cobalto)}
+  .semana-grilla .bloque:hover{background:var(--acento);color:var(--sobre-acento)}
+  .semana-grilla .bloque:hover .hora-bloque,
+  .semana-grilla .bloque:hover .quien-bloque{color:var(--sobre-acento)}
+  .semana-grilla .bloque.choca{background:var(--carmin-suave);border-left-color:var(--carmin)}
+  .semana-grilla .bloque.choca:hover{background:var(--carmin)}
+  .semana-grilla .bloque.choca:hover .hora-bloque,
+  .semana-grilla .bloque.choca:hover .quien-bloque{color:var(--sobre-acento)}
+  .semana-grilla .hora-bloque{font-family:var(--tit),sans-serif;font-size:11px;font-weight:700;color:var(--acento-texto)}
   .semana-grilla .bloque.choca .hora-bloque{color:var(--carmin)}
   .semana-grilla .quien-bloque{font-size:11.5px;color:var(--tinta);line-height:1.2;overflow:hidden}
   .navdia{
-    display:flex;align-items:center;gap:12px;background:var(--hoja);
-    border:1px solid var(--borde);border-radius:4px;padding:12px 14px;margin-bottom:12px;
+    display:flex;align-items:center;gap:12px;background:var(--hoja);box-shadow:var(--som);
+    border:1px solid var(--borde);border-radius:var(--r);padding:12px 14px;margin-bottom:12px;
   }
   .navdia .mini{width:36px;height:36px;font-size:19px;font-weight:700;color:var(--tinta)}
   .navdia .fecha{
@@ -299,8 +411,9 @@
   }
   .acciones{display:flex;flex-wrap:wrap;gap:6px}
   .barra-sup{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+
   /* ---------- impresión ---------- */
-  .hoja-impresa{background:var(--hoja);border:1px solid var(--borde);border-radius:4px;padding:24px}
+  .hoja-impresa{background:var(--hoja);border:1px solid var(--borde);border-radius:var(--r);padding:24px}
   .hoja-impresa h1{font-size:26px;margin-bottom:2px}
   .hoja-impresa .sub-impresa{color:var(--gris);margin-bottom:18px}
   .dia-impreso{margin-bottom:22px;break-inside:avoid}
@@ -308,119 +421,121 @@
   .hoja-impresa table{width:100%;border-collapse:collapse;font-size:14px}
   .hoja-impresa th{text-align:left;font-size:11.5px;color:var(--gris);padding:5px 6px;font-weight:600}
   .hoja-impresa td{padding:8px 6px;border-bottom:1px solid var(--borde)}
-  .hoja-impresa td:nth-child(2),.hoja-impresa td:nth-child(3){width:56px;font-family:'Chivo',sans-serif}
+  .hoja-impresa td:nth-child(2),.hoja-impresa td:nth-child(3){width:56px;font-family:var(--tit),sans-serif}
   .hoja-impresa td:nth-child(4){width:80px;border-bottom:1px solid var(--tinta)}
   .nota-impresa{font-size:12.5px;color:var(--gris)}
   .pie-impreso{margin-top:20px;font-size:11.5px;color:var(--gris);text-align:right}
   @media print{
     body{background:#fff !important}
-    .topbar,.no-imprimir,.mensajes,.volver{display:none !important}
+    .topbar,.barra-abajo,.no-imprimir,.mensajes,.volver{display:none !important}
     .wrap{max-width:none;padding:0}
-    .hoja-impresa{border:0;padding:0}
+    .hoja-impresa{border:0;padding:0;box-shadow:none}
     .hoja-impresa td:nth-child(4){border-bottom:1px solid #999}
   }
 
-  /* planilla de series del alumno */
+  /* ---------- planilla de series del alumno ---------- */
   .planilla{margin-top:10px}
   .serie{display:flex;align-items:center;gap:7px;margin-bottom:7px}
   .serie .n{
-    font-family:'Chivo',sans-serif;font-weight:700;font-size:14px;color:var(--gris);
+    font-family:var(--tit),sans-serif;font-weight:700;font-size:14px;color:var(--gris);
     width:22px;text-align:center;flex:0 0 22px;
   }
-  .serie input{margin-top:0;text-align:center;font-family:'Chivo',sans-serif;font-weight:700;
+  .serie input{margin-top:0;text-align:center;font-family:var(--tit),sans-serif;font-weight:700;
     font-size:16px;padding:9px 6px;min-width:0}
   .serie .btn.chico{flex:0 0 auto}
-  .serie.hecha{background:var(--cobalto-suave);border-radius:4px;padding:8px 10px}
+  .serie.hecha{background:var(--suave);border-radius:var(--r-chico);padding:8px 10px}
   .serie.hecha .dato{font-size:15px;color:var(--tinta)}
-  .serie.hecha .dato b{font-family:'Chivo',sans-serif;font-size:17px}
-  .serie.hecha .mini{margin-left:auto}
+  .serie.hecha .dato b{font-family:var(--tit),sans-serif;font-size:17px}
+  .serie.hecha .mini{margin-left:auto;background:transparent}
   .agregar-nota{
-    background:none;border:0;color:var(--cobalto);font-family:inherit;font-size:13.5px;
-    font-weight:600;cursor:pointer;padding:4px 0;text-decoration:underline;
+    background:none;border:0;font-family:inherit;font-size:13.5px;
+    font-weight:600;cursor:pointer;padding:8px 0;min-height:32px;text-decoration:underline;
+    color:var(--acento-texto);
   }
   .nota-alumno{margin-top:8px;border-left:2px solid var(--borde);padding-left:12px}
   .nota-alumno label{margin-bottom:8px}
   .navsemana{
     display:flex;align-items:center;gap:12px;background:var(--hoja);border:1px solid var(--borde);
-    border-radius:4px;padding:10px 14px;margin-bottom:12px;
+    box-shadow:var(--som);border-radius:var(--r);padding:10px 14px;margin-bottom:12px;
   }
   .navsemana .mini{width:34px;height:34px;font-size:18px;font-weight:700;color:var(--tinta)}
-  .navsemana .centro-sem{flex:1;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px}
-  .navsemana b{font-family:'Chivo',sans-serif;font-size:16px}
+  .navsemana .centro-sem{flex:1;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
+  .navsemana b{font-family:var(--tit),sans-serif;font-size:16px}
   .referencia{font-size:13px;color:var(--gris);margin-top:8px}
-  .referencia b{font-family:'Chivo',sans-serif;color:var(--cobalto)}
+  .referencia b{font-family:var(--tit),sans-serif;color:var(--acento-texto)}
   .peso-dia .anotar{max-width:none;flex:0 0 auto}
-  .peso-dia .anotar input{width:82px;text-align:center;font-family:'Chivo',sans-serif;
+  .peso-dia .anotar input{width:82px;text-align:center;font-family:var(--tit),sans-serif;
     font-weight:700;font-size:17px;padding:10px 6px}
-  @media (max-width:400px){
+  @media (max-width:430px){
     .peso-dia .row{flex-wrap:wrap}
     .peso-dia .anotar{width:100%;margin-top:10px}
     .peso-dia .anotar input{flex:1;width:auto}
   }
 
-  /* indicación del entrenador */
+  /* ---------- indicación del entrenador ---------- */
   .indicacion{
-    background:var(--hoja);border:1px solid var(--borde);border-left:4px solid var(--durazno, #D99B12);
-    border-radius:4px;padding:14px 16px;margin-bottom:14px;
+    background:var(--suave);border:1px solid var(--borde);border-left:4px solid var(--acento);
+    border-radius:var(--r);padding:14px 16px;margin-bottom:14px;
   }
-  .indicacion h3{font-size:15.5px}
+  .indicacion h3{font-size:15px}
 
-  /* progreso detallado */
+  /* ---------- progreso detallado ---------- */
   .semanas{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
   .chip{
-    background:var(--hoja);border:1.5px solid var(--borde);border-radius:20px;padding:6px 14px;
-    font-family:'Chivo',sans-serif;font-size:13.5px;font-weight:700;color:var(--gris);cursor:pointer;
+    background:var(--hoja);border:1.5px solid var(--borde);border-radius:99px;padding:6px 15px;
+    font-family:var(--tit),sans-serif;font-size:13px;font-weight:700;color:var(--gris);cursor:pointer;
   }
-  .chip.on{background:var(--cobalto);border-color:var(--cobalto);color:#fff}
-  .tabla.detalle td:first-child{width:52px;font-family:'Chivo',sans-serif;color:var(--gris)}
-  .tabla.detalle b{font-family:'Chivo',sans-serif;font-variant-numeric:tabular-nums}
-  .observacion{margin-top:8px;border-left:2px solid var(--cobalto);padding-left:12px}
-  .observacion b{font-family:'Chivo',sans-serif;font-size:13px;color:var(--cobalto)}
+  .chip:hover{border-color:var(--acento);color:var(--acento)}
+  .chip.on{background:var(--acento);border-color:var(--acento);color:var(--sobre-acento)}
+  .tabla.detalle td:first-child{width:52px;font-family:var(--tit),sans-serif;color:var(--gris)}
+  .tabla.detalle b{font-family:var(--tit),sans-serif;font-variant-numeric:tabular-nums}
+  .observacion{margin-top:8px;border-left:2px solid var(--acento);padding-left:12px}
+  .observacion b{font-family:var(--tit),sans-serif;font-size:13px;color:var(--acento-texto)}
 
   .grafico{margin:12px 0 6px}
   .grafico svg{width:100%;height:70px;display:block}
-  .dif{font-family:'Chivo',sans-serif;font-size:15px}
-  .dif.baja{color:var(--cobalto)}
+  .dif{font-family:var(--tit),sans-serif;font-size:15px}
+  .dif.baja{color:var(--acento-texto)}
   .dif.sube{color:var(--gris)}
   .ultimo{font-size:12.5px;color:var(--gris);margin-top:3px}
-  .ultimo b{font-family:'Chivo',sans-serif;color:var(--cobalto)}
+  .ultimo b{font-family:var(--tit),sans-serif;color:var(--acento-texto)}
   .asist{
-    background:var(--hoja);border:1.5px solid var(--borde);border-radius:4px;padding:8px 13px;
-    font-family:'Chivo',sans-serif;font-size:13.5px;font-weight:700;color:var(--gris);cursor:pointer;
+    background:var(--hoja);border:1.5px solid var(--borde);border-radius:var(--r-chico);padding:8px 13px;
+    font-family:var(--tit),sans-serif;font-size:13.5px;font-weight:700;color:var(--gris);cursor:pointer;
   }
   .asist:hover{border-color:var(--tinta);color:var(--tinta)}
-  .asist.vino{background:var(--cobalto-suave);border-color:var(--cobalto);color:var(--cobalto)}
-  .asist.falto{background:var(--carmin-suave);border-color:#EBC8CD;color:var(--carmin)}
-  .buscador{margin-top:0;flex:1;min-width:180px;max-width:280px;padding:8px 12px;font-size:14.5px}
+  .asist.vino{background:var(--suave);border-color:var(--acento);color:var(--acento-texto)}
+  .asist.falto{background:var(--carmin-suave);border-color:var(--carmin-borde);color:var(--carmin)}
+  .buscador{margin-top:0;flex:1;min-width:180px;max-width:280px;padding:9px 12px;font-size:14.5px}
   .uso{margin-bottom:12px}
   .uso .row{margin-bottom:5px;font-size:14.5px}
-  .uso b{font-family:'Chivo',sans-serif;font-variant-numeric:tabular-nums}
+  .uso b{font-family:var(--tit),sans-serif;font-variant-numeric:tabular-nums}
   .beneficios{margin:10px 0 16px;padding-left:18px}
   .beneficios li{margin-bottom:7px;font-size:15px}
-  .beneficios b{font-family:'Chivo',sans-serif;font-weight:700}
-  .respuesta{margin-top:12px;border-left:2px solid var(--cobalto);padding-left:12px}
-  .respuesta b{font-family:'Chivo',sans-serif;font-size:13.5px;color:var(--cobalto)}
+  .beneficios b{font-family:var(--tit),sans-serif;font-weight:700}
+  .respuesta{margin-top:12px;border-left:2px solid var(--acento);padding-left:12px}
+  .respuesta b{font-family:var(--tit),sans-serif;font-size:13.5px;color:var(--acento-texto)}
   .respuesta p{margin-top:2px}
   .card.turno{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap}
   .card.turno .quien{flex:1 1 140px;min-width:0}
   .card.turno .acciones{flex:0 0 auto}
   .horario{
-    font-family:'Chivo',sans-serif;font-size:20px;font-weight:900;letter-spacing:-.03em;
-    color:var(--cobalto);min-width:56px;font-variant-numeric:tabular-nums;
+    font-family:var(--tit),sans-serif;font-size:19px;font-weight:800;letter-spacing:-.03em;
+    color:var(--acento);min-width:56px;font-variant-numeric:tabular-nums;
   }
 
   /* ---------- ventanas ---------- */
-  .fondo-modal{position:fixed;inset:0;background:rgba(15,34,49,.5);display:flex;align-items:flex-end;justify-content:center;z-index:60}
+  .fondo-modal{position:fixed;inset:0;background:rgba(26,20,16,.45);display:flex;align-items:flex-end;justify-content:center;z-index:60}
   .modal{
-    background:var(--hoja);border-radius:6px 6px 0 0;padding:22px 20px 26px;width:100%;
-    max-width:520px;max-height:88vh;overflow:auto;border-top:3px solid var(--cobalto);
+    background:var(--hoja);border-radius:16px 16px 0 0;padding:22px 20px 26px;width:100%;
+    max-width:520px;max-height:88vh;overflow:auto;box-shadow:var(--som-alta);
     animation:entra .16s ease-out;
   }
   @keyframes entra{from{transform:translateY(12px)}to{transform:none}}
   @media (prefers-reduced-motion:reduce){.modal{animation:none}}
   @media (min-width:560px){
     .fondo-modal{align-items:center;padding:20px}
-    .modal{border-radius:6px}
+    .modal{border-radius:var(--r)}
   }
   .modal h3{font-size:19px;margin-bottom:5px}
   .modal .sub{color:var(--gris);font-size:14.5px;margin-bottom:18px}
@@ -430,17 +545,20 @@
     position:fixed;left:0;right:0;bottom:20px;display:flex;flex-direction:column;
     align-items:center;gap:8px;z-index:80;pointer-events:none;padding:0 16px;
   }
-  .mensaje{
-    background:var(--barra);color:var(--sobre-barra);padding:11px 17px;border-radius:4px;
-    font-size:14.5px;font-weight:500;max-width:440px;border-left:3px solid var(--cobalto);
+  @media (max-width:760px){
+    .mensajes{bottom:calc(76px + env(safe-area-inset-bottom))}
   }
-  .mensaje.mal{border-left-color:var(--carmin)}
-  .mensaje.bien{border-left-color:#5FA8FF}
+  .mensaje{
+    background:#1A1410;color:#FBF9F7;padding:11px 17px;border-radius:var(--r);
+    font-size:14.5px;font-weight:500;max-width:440px;border-left:3px solid var(--acento);
+    box-shadow:var(--som-alta);
+  }
+  .mensaje.mal{border-left-color:#F0879B}
 
   .tabla{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px}
   .tabla th,.tabla td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--borde)}
   .tabla th{color:var(--gris);font-size:12.5px;font-weight:600}
-  .tabla td b{font-family:'Chivo',sans-serif;font-variant-numeric:tabular-nums}
+  .tabla td b{font-family:var(--tit),sans-serif;font-variant-numeric:tabular-nums}
 
   @media (max-width:430px){
     .dos{grid-template-columns:1fr}
@@ -494,7 +612,21 @@ const diasRestantes = inicio => {
   return Math.ceil((new Date(f + 'T00:00:00') - new Date().setHours(0, 0, 0, 0)) / 864e5);
 };
 
-/* La cinta métrica del plan: cuatro semanas con marcas, como una cinta de medir. */
+/* Iniciales para el círculo del alumno: "Camila Godoy" -> "CG". */
+const iniciales = n => ((n || '').trim().split(/\s+/).slice(0, 2)
+  .map(p => p.charAt(0)).join('').toUpperCase()) || '?';
+
+/* En qué anda el plan del alumno, para la etiqueta de su tarjeta. */
+function estadoPlan(inicio) {
+  const d = diasRestantes(inicio);
+  if (d === null) return { texto: 'Sin plan', clase: '' };
+  if (d < 0) return { texto: 'Toca renovar', clase: 'alerta' };
+  if (d === 0) return { texto: 'Termina hoy', clase: 'aviso' };
+  if (d <= 7) return { texto: 'Quedan ' + d + (d === 1 ? ' día' : ' días'), clase: 'aviso' };
+  return { texto: 'Semana ' + Math.min(4, Math.max(1, Math.ceil((29 - d) / 7))), clase: 'ok' };
+}
+
+/* La cinta del plan: cuatro semanas, con una marca por semana. */
 function Progreso({ inicio, compacto }) {
   if (!inicio) return null;
   const dias = diasRestantes(inicio);
@@ -502,10 +634,8 @@ function Progreso({ inicio, compacto }) {
   const pct = (transcurridos / 28) * 100;
   const estado = dias < 0 ? 'cumplido' : dias <= 7 ? 'cerca' : '';
   const semana = Math.min(4, Math.max(1, Math.ceil((transcurridos + 1) / 7)));
-  const marcas = [];
-  for (let d = 1; d < 28; d++)
-    marcas.push(<i key={d} className={'marca' + (d % 7 === 0 ? ' alta' : '')}
-      style={{ left: (d / 28) * 100 + '%', top: d % 7 === 0 ? 0 : 8, bottom: d % 7 === 0 ? 0 : 8 }} />);
+  const marcas = [7, 14, 21].map(d =>
+    <i key={d} className="marca" style={{ left: (d / 28) * 100 + '%' }} />);
 
   return (
     <div className="plan">
@@ -680,29 +810,35 @@ function Entrar({ onEntrar }) {
   }
 
   return (
-    <div className="centro">
-      <div className="portada">
-        <span className="cifra">4×10</span>
-        <h1>AppTrainner</h1>
-        <p>Armá las rutinas de tus alumnos sin volver a pegar un video nunca más.</p>
+    <div className="entrada">
+      <div className="entrada-lado">
+        <strong className="marca-lado">AppTrainner</strong>
+        <div>
+          <h2>Tus alumnos, sus rutinas y sus controles en un solo lugar.</h2>
+          <p style={{ marginTop: 10 }}>Armá el mes, mandá el link personal y mirá qué cargó cada uno.</p>
+        </div>
+        <span className="pie-lado">Hecho para entrenadores de Argentina</span>
       </div>
-      <div className="card">
-        {modo === 'registro' &&
-          <label>¿Cómo te llamás?<input value={f.nombre} onChange={set('nombre')} placeholder="Tu nombre" /></label>}
-        <label>Mail<input type="email" value={f.email} onChange={set('email')} autoComplete="email" /></label>
-        <label>Contraseña
-          <input type="password" value={f.password} onChange={set('password')}
-            autoComplete={modo === 'login' ? 'current-password' : 'new-password'}
-            onKeyDown={e => e.key === 'Enter' && enviar()} />
-          {modo === 'registro' && <span className="chico">Mínimo 8 caracteres.</span>}
-        </label>
-        <button className="btn" onClick={enviar} disabled={cargando}>
-          {cargando ? 'Un segundito...' : modo === 'login' ? 'Entrar' : 'Crear mi cuenta'}</button>
-        <button className="btn linea" style={{ marginTop: 10 }}
-          onClick={() => setModo(modo === 'login' ? 'registro' : 'login')}>
-          {modo === 'login' ? 'Todavía no tengo cuenta' : 'Ya tengo cuenta'}</button>
-        {modo === 'login' &&
-          <button className="olvide" onClick={pedirLink}>Me olvidé la contraseña</button>}
+      <div className="entrada-form">
+        <div className="entrada-caja">
+          <h3>{modo === 'login' ? 'Entrá a tu cuenta' : 'Creá tu cuenta'}</h3>
+          {modo === 'registro' &&
+            <label>¿Cómo te llamás?<input value={f.nombre} onChange={set('nombre')} placeholder="Tu nombre" /></label>}
+          <label>Mail<input type="email" value={f.email} onChange={set('email')} autoComplete="email" /></label>
+          <label>Contraseña
+            <input type="password" value={f.password} onChange={set('password')}
+              autoComplete={modo === 'login' ? 'current-password' : 'new-password'}
+              onKeyDown={e => e.key === 'Enter' && enviar()} />
+            {modo === 'registro' && <span className="chico">Mínimo 8 caracteres.</span>}
+          </label>
+          <button className="btn" onClick={enviar} disabled={cargando}>
+            {cargando ? 'Un segundito...' : modo === 'login' ? 'Entrar' : 'Crear mi cuenta'}</button>
+          <button className="btn linea" style={{ marginTop: 10 }}
+            onClick={() => setModo(modo === 'login' ? 'registro' : 'login')}>
+            {modo === 'login' ? 'Todavía no tengo cuenta' : 'Ya tengo cuenta'}</button>
+          {modo === 'login' &&
+            <button className="olvide" onClick={pedirLink}>Me olvidé la contraseña</button>}
+        </div>
       </div>
     </div>);
 }
@@ -1010,7 +1146,10 @@ function Alumnos({ clientes, recargar, abrir, recargarTurnos, irAAyuda }) {
       </div>}
 
     <div className="row" style={{ marginBottom: 12 }}>
-      <h2>Tus alumnos</h2>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0 }}>
+        <h2>Tus alumnos</h2>
+        {!!clientes.length && <span className="chico">{clientes.length} activos</span>}
+      </div>
       <button className="btn chico" onClick={() => setForm(nuevo)}>Sumar alumno</button>
     </div>
     <div className="barra-sup">
@@ -1025,11 +1164,18 @@ function Alumnos({ clientes, recargar, abrir, recargarTurnos, irAAyuda }) {
         <button className="btn chico" onClick={() => setForm(nuevo)}>Sumar el primero</button></div>}
 
     <div className="columnas">
-      {visibles.map(c => (
-        <div className="card tap" key={c.id} onClick={() => abrir(c.id)}>
-          <h3>{c.nombre}</h3>
-          <Progreso inicio={c.inicio} />
-        </div>))}
+      {visibles.map(c => {
+        const est = estadoPlan(c.inicio);
+        return (
+          <div className="card tap" key={c.id} onClick={() => abrir(c.id)}>
+            <div className="alumno-cab">
+              <span className="inicial">{iniciales(c.nombre)}</span>
+              <div className="quien"><h3>{c.nombre}</h3></div>
+              <span className={'globo ' + est.clase}>{est.texto}</span>
+            </div>
+            <Progreso inicio={c.inicio} />
+          </div>);
+      })}
     </div>
     {!visibles.length && !!clientes.length &&
       <p className="suave">Ningún alumno coincide con "{busq}".</p>}
@@ -1232,9 +1378,9 @@ function LineaPeso({ puntos }) {
     <div className="grafico">
       <svg viewBox={`0 0 ${an} ${al}`} preserveAspectRatio="none" role="img"
         aria-label={`Evolución del peso, de ${datos[0].peso} a ${datos[datos.length - 1].peso} kilos`}>
-        <path d={linea} fill="none" stroke="var(--cobalto)" strokeWidth="2"
+        <path d={linea} fill="none" stroke="var(--acento)" strokeWidth="2"
           strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-        {datos.map((p, i) => <circle key={i} cx={x(i)} cy={y(p.peso)} r="2.5" fill="var(--cobalto)" />)}
+        {datos.map((p, i) => <circle key={i} cx={x(i)} cy={y(p.peso)} r="2.5" fill="var(--acento)" />)}
       </svg>
       <div className="row">
         <span className="chico">{datos[0].peso} kg el {fmt(datos[0].fecha)}</span>
@@ -1387,18 +1533,49 @@ function Ficha({ id, volver, abrirRutina, abrirProgreso, clientes, plantillas, r
 
   return (<div>
     <button className="volver" onClick={volver}>← Tus alumnos</button>
-    <div className="row"><h2>{c.nombre}</h2>
+    <div className="ficha-cab">
+      <span className="inicial grande">{iniciales(c.nombre)}</span>
+      <div className="quien">
+        <h2>{c.nombre}</h2>
+        <span className="chico">
+          {[c.inicio ? 'Desde el ' + fmt(c.inicio) : null,
+            c.peso_inicial ? c.peso_inicial + ' kg al empezar' : null,
+            c.altura ? c.altura + ' cm' : null].filter(Boolean).join(' · ') || 'Sin medidas cargadas'}
+        </span>
+      </div>
       <button className="btn linea chico" onClick={() => setEditar({
         nombre: c.nombre, contacto: c.contacto || '', inicio: c.inicio,
         peso_inicial: c.peso_inicial || '', altura: c.altura || '', notas: c.notas || '', id: c.id })}>Editar</button>
     </div>
     <p className="suave">{c.contacto || 'Sin contacto cargado'}</p>
-    <p className="chico">
-      {[c.peso_inicial ? c.peso_inicial + ' kg al empezar' : null,
-        c.altura ? c.altura + ' cm' : null].filter(Boolean).join(', ') || 'Sin medidas cargadas'}
-    </p>
     {c.notas && <p className="suave" style={{ marginTop: 6, fontStyle: 'italic' }}>{c.notas}</p>}
-    <Progreso inicio={c.inicio} />
+    <div style={{ marginTop: 12 }}><Progreso inicio={c.inicio} /></div>
+
+    <div className="tablero" style={{ marginTop: 16 }}>
+      <div className="dato-grande">
+        <b className="cifra-dato">{c.rutinas.length}</b>
+        <span className="etiqueta-dato">{c.rutinas.length === 1 ? 'Rutina armada' : 'Rutinas armadas'}</span>
+        <span className="chico">desde que empezó</span>
+      </div>
+      <div className="dato-grande">
+        <b className="cifra-dato">{turnos.length}</b>
+        <span className="etiqueta-dato">{turnos.length === 1 ? 'Día por semana' : 'Días por semana'}</span>
+        <span className="chico">{turnos.length ? 'en tu agenda' : 'todavía sin horario'}</span>
+      </div>
+      {!!c.asistencia && (c.asistencia.presente + c.asistencia.ausente > 0) &&
+        <div className="dato-grande">
+          <b className="cifra-dato">{c.asistencia.presente}<span style={{ fontSize: 20 }}>
+            {' de ' + (c.asistencia.presente + c.asistencia.ausente)}</span></b>
+          <span className="etiqueta-dato">Asistencia</span>
+          <span className="chico">en este plan</span>
+        </div>}
+      {!!(c.seguimiento || []).length &&
+        <div className="dato-grande">
+          <b className="cifra-dato">{c.seguimiento[0].peso}<span style={{ fontSize: 20 }}> kg</span></b>
+          <span className="etiqueta-dato">Último peso</span>
+          <span className="chico">del {fmt(c.seguimiento[0].fecha)}</span>
+        </div>}
+    </div>
 
     <div className="card" style={{ marginTop: 16 }}>
       <div className="row"><h3>Sus días</h3>
@@ -1414,7 +1591,7 @@ function Ficha({ id, volver, abrirRutina, abrirProgreso, clientes, plantillas, r
               <div className="chico">{t.hora}, {t.duracion} minutos{t.nota ? '. ' + t.nota : ''}</div>
               {t.choca && <span className="globo alerta" style={{ marginTop: 6 }}>Se pisa con otro turno</span>}
             </div>
-            <div style={{ display: 'flex', gap: 6 }}>
+            <div className="acciones" style={{ justifyContent: 'flex-end' }}>
               <button className="btn linea chico" onClick={() => setTurnoForm(t)}>Cambiar</button>
               <button className="btn riesgo chico" onClick={() => borrarTurno(t)}>Quitar</button>
             </div>
@@ -1515,7 +1692,7 @@ function Ficha({ id, volver, abrirRutina, abrirProgreso, clientes, plantillas, r
             {d.ejercicios.map((e, j) => (
               <p className="suave" key={j} style={{ marginTop: 6 }}>
                 <b style={{ color: 'var(--tinta)' }}>{e.nombre}</b>{': '}
-                <span style={{ fontFamily: "'Chivo',sans-serif", fontVariantNumeric: 'tabular-nums' }}>
+                <span style={{ fontFamily: "'Archivo',sans-serif", fontVariantNumeric: 'tabular-nums' }}>
                   {e.series.map(x => `${x.kg}×${x.reps}`).join('   ')}</span>
               </p>))}
           </div>))}
@@ -1527,7 +1704,7 @@ function Ficha({ id, volver, abrirRutina, abrirProgreso, clientes, plantillas, r
         <LineaPeso puntos={c.seguimiento} />
         {c.seguimiento.map(x =>
           <p className="suave" key={x.id} style={{ marginTop: 6 }}>
-            <b style={{ fontFamily: "'Chivo',sans-serif" }}>{x.peso} kg</b>
+            <b style={{ fontFamily: "'Archivo',sans-serif" }}>{x.peso} kg</b>
             {' el ' + fmt(x.fecha)}{x.semana ? ` (semana ${x.semana})` : ''}{x.nota ? '. ' + x.nota : ''}</p>)}
       </div>}
 
@@ -1763,9 +1940,9 @@ function Progresograma({ clienteId, nombre, volver, ejercicios }) {
                     const y = v => 70 - ((v - min) / rango) * 56;
                     return (<g>
                       <path d={p.map((q, i) => `${i ? 'L' : 'M'}${x(i)},${y(q.kg)}`).join(' ')}
-                        fill="none" stroke="var(--cobalto)" strokeWidth="2"
+                        fill="none" stroke="var(--acento)" strokeWidth="2"
                         vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
-                      {p.map((q, i) => <circle key={i} cx={x(i)} cy={y(q.kg)} r="3" fill="var(--cobalto)" />)}
+                      {p.map((q, i) => <circle key={i} cx={x(i)} cy={y(q.kg)} r="3" fill="var(--acento)" />)}
                     </g>);
                   })()}
                 </svg>
@@ -2189,7 +2366,7 @@ function Agenda({ clientes, recargarTurnos }) {
     {!clientes.length && <div className="vacio"><p>Primero cargá alumnos para poder darles horario.</p></div>}
 
     {!!choques.length &&
-      <div className="recordatorio" style={{ borderLeftColor: 'var(--coral)' }}>
+      <div className="recordatorio alerta">
         <h3>Se te juntan alumnos este día</h3>
         <p className="suave">Hay horarios con más gente de la que atendés a la vez. Podés ajustar ese número en Ayuda.</p>
       </div>}
@@ -2803,7 +2980,7 @@ function Metricas() {
     </div>
 
     {!!m.dormidas.length &&
-      <div className="card" style={{ borderLeftColor: 'var(--carmin)' }}>
+      <div className="card peligro">
         <h3>Cuentas dormidas</h3>
         <p className="suave" style={{ marginBottom: 8 }}>
           Sin actividad de sus alumnos hace más de 15 días. Son las que están por irse.
@@ -3153,7 +3330,7 @@ function VistaAlumno({ token }) {
         <LineaPeso puntos={d.seguimiento} />
         {(d.seguimiento || []).slice(0, 6).map(s =>
           <p className="suave" key={s.id} style={{ marginTop: 6 }}>
-            <b style={{ fontFamily: "'Chivo',sans-serif" }}>{s.peso} kg</b>{' el ' + fmt(s.fecha)}</p>)}
+            <b style={{ fontFamily: "'Archivo',sans-serif" }}>{s.peso} kg</b>{' el ' + fmt(s.fecha)}</p>)}
       </div>
     </div>
 
@@ -3183,6 +3360,7 @@ function App() {
   const [clienteId, setClienteId] = useState(null);
   const [rutinaId, setRutinaId] = useState(null);
   const [progresoId, setProgresoId] = useState(null);
+  const [mas, setMas] = useState(false);
   const { avisar } = usarAviso();
 
   const recargarClientes = useCallback(async () => {
@@ -3264,6 +3442,11 @@ function App() {
   else contenido = <Alumnos clientes={clientes} recargar={recargarClientes} abrir={setClienteId}
     recargarTurnos={recargarTurnos} irAAyuda={() => irA('ayuda')} />;
 
+  // En el celular entran cinco accesos abajo. Si la cuenta es admin y hay más,
+  // los últimos se agrupan en "Más" para que ninguno quede escondido.
+  const principales = tabs.length > 5 ? tabs.slice(0, 4) : tabs;
+  const restantes = tabs.slice(principales.length);
+
   return (<div>
     <div className="topbar">
       <div className="brand">
@@ -3282,6 +3465,22 @@ function App() {
     <div className={'wrap' + (anchoCompleto ? '' : ' angosto')}>
       <Escudo clave={tab + (clienteId || '') + (rutinaId || '') + (progresoId || '')}>{contenido}</Escudo>
     </div>
+
+    <nav className="barra-abajo" aria-label="Secciones">
+      {principales.map(([k, t]) => (
+        <button key={k} className={tab === k ? 'on' : ''} onClick={() => irA(k)}>{t}</button>))}
+      {!!restantes.length &&
+        <button className={restantes.some(([k]) => k === tab) ? 'on' : ''}
+          onClick={() => setMas(true)}>Más</button>}
+    </nav>
+
+    {mas &&
+      <Modal titulo="Ir a" cerrar={() => setMas(false)}>
+        <div className="lista">
+          {restantes.map(([k, t]) => (
+            <button key={k} className="op" onClick={() => { setMas(false); irA(k); }}>{t}</button>))}
+        </div>
+      </Modal>}
   </div>);
 }
 
