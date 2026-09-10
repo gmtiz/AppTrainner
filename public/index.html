@@ -385,11 +385,24 @@
   .semana-grilla .pista{position:relative;height:var(--alto);border-left:1px solid var(--borde)}
   .semana-grilla .linea{position:absolute;left:0;right:0;height:1px;background:var(--borde);opacity:.6}
   .semana-grilla .bloque{
-    position:absolute;left:2px;right:2px;background:var(--suave);
+    position:absolute;box-sizing:border-box;
+    left:calc(var(--l, 0%) + 2px);width:calc(var(--w, 100%) - 4px);
+    background:var(--suave);
     border:0;border-left:3px solid var(--acento);
     border-radius:6px;padding:3px 5px;cursor:pointer;overflow:hidden;text-align:left;
     display:flex;flex-direction:column;gap:1px;font-family:inherit;
+    transition:left .12s ease, width .12s ease;
   }
+  /* Cuando comparten horario quedan angostos: al pasar el mouse (o con el
+     teclado) el bloque se abre a toda la columna y se lee completo. */
+  .semana-grilla .bloque:hover,
+  .semana-grilla .bloque:focus-visible{
+    left:2px;width:calc(100% - 4px);z-index:50;box-shadow:var(--som);
+  }
+  .semana-grilla .bloque.apretado{padding:2px 4px;border-left-width:2px}
+  .semana-grilla .bloque.apretado .hora-bloque{display:none}
+  .semana-grilla .bloque.apretado:hover .hora-bloque,
+  .semana-grilla .bloque.apretado:focus-visible .hora-bloque{display:block}
   .semana-grilla .bloque:hover{background:var(--acento);color:var(--sobre-acento)}
   .semana-grilla .bloque:hover .hora-bloque,
   .semana-grilla .bloque:hover .quien-bloque{color:var(--sobre-acento)}
@@ -2219,6 +2232,38 @@ function Editor({ id, volver, ejercicios, grupos, recargarEjercicios }) {
 
 /* La semana entera de un vistazo: es donde el entrenador ve dónde le queda
    un hueco para meter un alumno nuevo. */
+/* Reparte en columnas los turnos que se pisan dentro de un mismo día, para que
+   no queden uno encima del otro. Devuelve, por turno, en qué columna va y
+   cuántas columnas tiene su grupo (los que se pisan entre sí, en cadena).
+   Está fuera del componente a propósito: así se puede probar sin un navegador. */
+function repartirEnColumnas(lista) {
+  const min = h => { const [a, b] = String(h).split(':').map(Number); return (a || 0) * 60 + (b || 0); };
+  const orden = [...lista].sort((a, b) => {
+    const ia = min(a.hora), ib = min(b.hora);
+    if (ia !== ib) return ia - ib;
+    const da = a.duracion || 60, db = b.duracion || 60;
+    if (da !== db) return db - da;
+    return String(a.id).localeCompare(String(b.id));   // desempate estable
+  });
+  const salida = [];
+  let grupo = [];
+  const cerrar = () => {
+    const columnas = grupo.reduce((m, x) => Math.max(m, x.col + 1), 0);
+    for (const x of grupo) salida.push({ turno: x.turno, col: x.col, columnas });
+    grupo = [];
+  };
+  for (const t of orden) {
+    const arranca = min(t.hora), termina = arranca + (t.duracion || 60);
+    // Si ninguno del grupo sigue abierto a esta hora, el grupo se cierra acá.
+    if (grupo.length && grupo.every(x => x.termina <= arranca)) cerrar();
+    let col = 0;
+    while (grupo.some(x => x.col === col && x.termina > arranca)) col++;
+    grupo.push({ turno: t, col, termina });
+  }
+  if (grupo.length) cerrar();
+  return salida;
+}
+
 function VistaSemana({ turnos, editar }) {
   const dias = [1, 2, 3, 4, 5, 6, 0];
   const enMinutos = h => { const [a, b] = String(h).split(':').map(Number); return (a || 0) * 60 + (b || 0); };
@@ -2249,11 +2294,17 @@ function VistaSemana({ turnos, editar }) {
             <div className="cabeza">{DIAS[d].slice(0, 3)}</div>
             <div className="pista">
               {horas.map(h => <div className="linea" key={h} style={{ top: y(h * 60) + 'px' }} />)}
-              {delDia.map(t => (
-                <button className={'bloque' + (t.choca ? ' choca' : '')} key={t.id}
+              {repartirEnColumnas(delDia).map(({ turno: t, col, columnas }) => (
+                <button className={'bloque' + (t.choca ? ' choca' : '') + (columnas > 2 ? ' apretado' : '')}
+                  key={t.id}
                   onClick={() => editar(t)}
+                  title={t.hora + ' · ' + t.alumno + ' · ' + (t.duracion || 60) + ' min'
+                         + (columnas > 1 ? ' · comparte horario con otro alumno' : '')}
                   style={{ top: y(enMinutos(t.hora)) + 'px',
-                           height: Math.max(26, ((t.duracion || 60) / ((fin - inicio) * 60)) * alto) + 'px' }}>
+                           height: Math.max(26, ((t.duracion || 60) / ((fin - inicio) * 60)) * alto) + 'px',
+                           '--l': (col * 100 / columnas) + '%',
+                           '--w': (100 / columnas) + '%',
+                           zIndex: col + 1 }}>
                   <span className="hora-bloque">{t.hora}</span>
                   <span className="quien-bloque">{t.alumno}</span>
                 </button>))}
