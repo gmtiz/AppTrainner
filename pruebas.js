@@ -210,6 +210,108 @@ check('pero si vuelve a avisar con tres',
   (await call('/turnos', { token: pt1 })).data.filter(t => t.dia_semana === 4 && t.choca).length === 3);
 check('el perfil guarda la capacidad', (await call('/perfil', { token: pt1 })).data.capacidad === 2);
 
+console.log('\n== AGENDA: TURNOS QUE SE PISAN EN PANTALLA ==');
+// El servidor ya avisa del choque; esto prueba que ademas se DIBUJEN separados.
+// Se extrae la funcion del index.html y se la corre de verdad, sin navegador.
+{
+  const fs = await import('node:fs');
+  let html = '';
+  for (const ruta of ['public/index.html', 'index.html'])
+    try { html = fs.readFileSync(ruta, 'utf8'); break; } catch {}
+  const desde = html.indexOf('function repartirEnColumnas');
+  const hastaF = desde >= 0 ? html.indexOf('\n}', desde) : -1;
+  check('existe el reparto en columnas de la agenda', desde >= 0 && hastaF > desde);
+if (desde >= 0 && hastaF > desde) {
+  const repartir = new Function(html.slice(desde, hastaF + 2) + '\nreturn repartirEnColumnas;')();
+
+  const min = h => { const [a, b] = String(h).split(':').map(Number); return (a || 0) * 60 + (b || 0); };
+  const T = (id, hora, duracion) => ({ id, hora, duracion, alumno: id });
+  const porId = res => Object.fromEntries(res.map(x => [x.turno.id, x]));
+
+  // Propiedad central: dos turnos que se pisan NUNCA pueden caer en la misma columna.
+  const sePisan = (a, b) => min(a.hora) < min(b.hora) + (b.duracion || 60)
+                         && min(b.hora) < min(a.hora) + (a.duracion || 60);
+  const hayEncimados = res => {
+    for (let i = 0; i < res.length; i++)
+      for (let j = i + 1; j < res.length; j++)
+        if (res[i].col === res[j].col && res[i].columnas === res[j].columnas
+            && sePisan(res[i].turno, res[j].turno)) return true;
+    return false;
+  };
+
+  const solo = repartir([T('a', '09:00', 60)]);
+  check('un turno solo ocupa todo el ancho', solo[0].col === 0 && solo[0].columnas === 1);
+
+  const dos = porId(repartir([T('a', '09:00', 60), T('b', '09:00', 60)]));
+  check('dos turnos a la misma hora se parten en 2 columnas',
+    dos.a.columnas === 2 && dos.b.columnas === 2, JSON.stringify(dos));
+  check('y cada uno va en una columna distinta', dos.a.col !== dos.b.col);
+
+  const lejos = porId(repartir([T('a', '09:00', 60), T('b', '11:00', 60)]));
+  check('dos turnos separados siguen a ancho completo',
+    lejos.a.columnas === 1 && lejos.b.columnas === 1);
+
+  const pegados = porId(repartir([T('a', '09:00', 60), T('b', '10:00', 60)]));
+  check('uno que termina justo cuando arranca el otro no se pisa',
+    pegados.a.columnas === 1 && pegados.b.columnas === 1);
+
+  const tres = repartir([T('a', '09:00', 60), T('b', '09:15', 60), T('c', '09:30', 60)]);
+  check('tres encimados se parten en 3 columnas', tres.every(x => x.columnas === 3));
+  check('y ocupan las columnas 0, 1 y 2',
+    [0, 1, 2].every(n => tres.some(x => x.col === n)));
+
+  // Cadena: a y c no se pisan entre si, asi que pueden compartir columna.
+  const cadena = porId(repartir([T('a', '09:00', 60), T('b', '09:30', 60), T('c', '10:00', 60)]));
+  check('en cadena alcanza con 2 columnas', cadena.a.columnas === 2);
+  check('y el primero y el ultimo reusan la misma columna', cadena.a.col === cadena.c.col);
+
+  const sinDur = porId(repartir([T('a', '09:00', undefined), T('b', '09:30', undefined)]));
+  check('sin duracion asume 60 minutos y detecta el cruce', sinDur.a.columnas === 2);
+
+  const mediaNoche = repartir([T('a', '00:00', 30), T('b', '23:30', 30)]);
+  check('horarios extremos no rompen', mediaNoche.length === 2);
+
+  check('nada queda encimado en los casos armados',
+    !hayEncimados(tres) && !hayEncimados(Object.values(cadena)) && !hayEncimados(Object.values(dos)));
+
+  // El mismo set en otro orden tiene que dar el mismo dibujo.
+  const base = [T('a', '09:00', 90), T('b', '09:00', 30), T('c', '09:45', 60), T('d', '11:00', 60)];
+  const uno = porId(repartir(base));
+  const otro = porId(repartir([...base].reverse()));
+  check('el resultado no depende del orden de entrada',
+    ['a', 'b', 'c', 'd'].every(k => uno[k].col === otro[k].col && uno[k].columnas === otro[k].columnas));
+
+  // Prueba por propiedades: 300 agendas al azar.
+  let malos = 0, perdidos = 0, desbordes = 0;
+  for (let n = 0; n < 300; n++) {
+    const cuantos = 1 + Math.floor(Math.random() * 7);
+    const lista = [];
+    for (let i = 0; i < cuantos; i++) {
+      const h = Math.floor(Math.random() * 22), m = [0, 15, 30, 45][Math.floor(Math.random() * 4)];
+      lista.push(T('t' + i, String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'),
+        [30, 45, 60, 90, 120][Math.floor(Math.random() * 5)]));
+    }
+    const res = repartir(lista);
+    if (res.length !== lista.length) perdidos++;
+    if (hayEncimados(res)) malos++;
+    if (res.some(x => x.col >= x.columnas || x.col < 0)) desbordes++;
+  }
+  check('con 300 agendas al azar no queda ningun turno encimado', malos === 0, 'fallaron ' + malos);
+  check('ningun turno se pierde en el reparto', perdidos === 0, 'fallaron ' + perdidos);
+  check('ninguna columna se sale del ancho del dia', desbordes === 0, 'fallaron ' + desbordes);
+
+  // Que el dibujo use lo que calcula la funcion.
+  const vs = html.slice(html.indexOf('function VistaSemana'), html.indexOf('/* ---------- agenda ----------'));
+  check('la vista semanal usa el reparto en columnas', /repartirEnColumnas\(delDia\)/.test(vs));
+  check('cada bloque se posiciona con su columna', /'--l'/.test(vs) && /'--w'/.test(vs));
+  check('el bloque ya no se estira de lado a lado',
+    !/left:2px;right:2px/.test(html.slice(html.indexOf('.semana-grilla .bloque{'),
+                                          html.indexOf('.semana-grilla .bloque:hover'))));
+  check('al pasar el mouse el bloque se abre para leerlo',
+    /\.semana-grilla \.bloque:hover[\s\S]{0,200}z-index:50/.test(html));
+}
+}
+
 console.log('\n== REGISTROS DEL ALUMNO ==');
 const tok = cl1.data.token;
 const va = await call('/alumno/' + tok);
