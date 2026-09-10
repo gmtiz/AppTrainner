@@ -2458,8 +2458,10 @@ function EditorPlantilla({ id, volver, ejercicios, grupos, recargarEjercicios, r
 
   async function quitar(it) {
     if (!await confirmar('¿Sacamos este ejercicio?', it.ejercicio, 'Sí, sacarlo')) return;
-    try { await api('/plantilla-items/' + it.id, { method: 'DELETE' }); setForm(null); cargar(); }
-    catch (e) { avisar(e.message, 'mal'); }
+    try {
+      await api('/plantilla-items/' + it.id, { method: 'DELETE' });
+      setForm(null); cargar(); await recargar(); avisar('Ejercicio sacado');
+    } catch (e) { avisar(e.message, 'mal'); }
   }
 
   async function guardarDia() {
@@ -2521,13 +2523,15 @@ function EditorPlantilla({ id, volver, ejercicios, grupos, recargarEjercicios, r
                 <div style={{ textAlign: 'right' }}>
                   <div className="series">{it.series}×{it.reps}</div>
                   <div style={{ display: 'flex', gap: 4, marginTop: 6, justifyContent: 'flex-end' }}>
-                    <button className="mini" onClick={() => reordenar(d, idx, idx - 1)} disabled={idx === 0}>↑</button>
+                    <button className="mini" onClick={() => reordenar(d, idx, idx - 1)}
+                      disabled={idx === 0} title="Subir">↑</button>
                     <button className="mini" onClick={() => reordenar(d, idx, idx + 1)}
-                      disabled={idx === d.items.length - 1}>↓</button>
+                      disabled={idx === d.items.length - 1} title="Bajar">↓</button>
                     <button className="btn linea chico" style={{ padding: '5px 10px', fontSize: 12.5 }}
                       onClick={() => setForm({ item_id: it.id, titulo: it.ejercicio, series: it.series || '',
-                        reps: it.reps || '', nota: it.nota || '', peso_sugerido: it.peso_sugerido || '',
-                        ultimo: ultimos[it.ejercicio_id] })}>Cambiar</button>
+                        reps: it.reps || '', nota: it.nota || '' })}>Cambiar</button>
+                    <button className="btn riesgo chico" style={{ padding: '5px 10px', fontSize: 12.5 }}
+                      onClick={() => quitar(it)}>Quitar</button>
                   </div>
                 </div>
               </div>
