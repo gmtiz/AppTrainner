@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>AppTrainner</title>
+<title>SmartTrainner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   /* =========================================================
-     AppTrainner — paleta "blanco y naranja"
+     SmartTrainner — paleta "blanco y naranja"
      Papel cálido, tarjetas blancas, naranja solo para lo que
      se toca o lo que hay que mirar. Títulos en Archivo,
      texto en Public Sans.
@@ -590,8 +590,16 @@
 <script type="text/babel">
 const { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext } = React;
 
-const CLAVE = 'apptrainner_token';
+const CLAVE = 'smarttrainner_token';
+const CLAVE_VIEJA = 'apptrainner_token';   // nombre anterior de la app
 let sesion = localStorage.getItem(CLAVE) || null;
+// Quien ya estaba con la sesión iniciada bajo el nombre viejo la conserva.
+if (!sesion) {
+  try {
+    const viejo = localStorage.getItem(CLAVE_VIEJA);
+    if (viejo) { sesion = viejo; localStorage.setItem(CLAVE, viejo); localStorage.removeItem(CLAVE_VIEJA); }
+  } catch { /* modo privado */ }
+}
 
 async function api(path, opts = {}) {
   const r = await fetch('/api' + path, {
@@ -665,14 +673,22 @@ function Progreso({ inicio, compacto }) {
 
 /* Modo claro u oscuro. Respeta lo que tenga configurado el celular
    la primera vez, y después manda la elección del usuario. */
-const TEMA = 'apptrainner_tema';
+const TEMA = 'smarttrainner_tema';
+const TEMA_VIEJO = 'apptrainner_tema';   // nombre anterior de la app
 function aplicarTema(t) {
   document.documentElement.setAttribute('data-tema', t);
   try { localStorage.setItem(TEMA, t); } catch { /* modo privado */ }
 }
 (function temaInicial() {
   let t = null;
-  try { t = localStorage.getItem(TEMA); } catch { /* modo privado */ }
+  try {
+    t = localStorage.getItem(TEMA);
+    // Se respeta el tema que el usuario ya había elegido con el nombre viejo.
+    if (!t) {
+      t = localStorage.getItem(TEMA_VIEJO);
+      if (t) { localStorage.setItem(TEMA, t); localStorage.removeItem(TEMA_VIEJO); }
+    }
+  } catch { /* modo privado */ }
   if (!t) t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'oscuro' : 'claro';
   document.documentElement.setAttribute('data-tema', t);
 })();
@@ -825,7 +841,7 @@ function Entrar({ onEntrar }) {
   return (
     <div className="entrada">
       <div className="entrada-lado">
-        <strong className="marca-lado">AppTrainner</strong>
+        <strong className="marca-lado">SmartTrainner</strong>
         <div>
           <h2>Tus alumnos, sus rutinas y sus controles en un solo lugar.</h2>
           <p style={{ marginTop: 10 }}>Armá el mes, mandá el link personal y mirá qué cargó cada uno.</p>
@@ -1851,7 +1867,7 @@ function Impresion({ rutina, alumno, cerrar }) {
             </tbody>
           </table>
         </div>))}
-      <p className="pie-impreso">AppTrainner</p>
+      <p className="pie-impreso">SmartTrainner</p>
     </div>);
 }
 
@@ -2025,7 +2041,7 @@ function ResumenMes({ cliente, cerrar }) {
           </table>
         </div>}
 
-      <p className="pie-impreso">AppTrainner</p>
+      <p className="pie-impreso">SmartTrainner</p>
     </div>);
 }
 
@@ -2824,7 +2840,7 @@ function Ayuda({ perfil, recargarPerfil }) {
       hoja('Registros', d.registros);
       hoja('Peso corporal', d.seguimiento);
       if (!libro.SheetNames.length) { avisar('Todavía no hay datos para exportar', 'mal'); return; }
-      XLSX.writeFile(libro, 'apptrainner-' + d.generado.slice(0, 10) + '.xlsx');
+      XLSX.writeFile(libro, 'smarttrainner-' + d.generado.slice(0, 10) + '.xlsx');
       avisar('Listo, se descargó tu archivo');
     } catch (e) { avisar(e.message, 'mal'); } finally { setBajando(false); }
   }
@@ -3043,7 +3059,7 @@ function Metricas() {
 
   return (<div>
     <h2>Cómo viene el producto</h2>
-    <p className="suave" style={{ marginBottom: 18 }}>Todo lo que pasa en AppTrainner, de un vistazo.</p>
+    <p className="suave" style={{ marginBottom: 18 }}>Todo lo que pasa en SmartTrainner, de un vistazo.</p>
 
     <div className="tablero">
       {dato('Cuentas', m.cuentas.total, `${m.cuentas.pagas} pagas, ${m.cuentas.gratis} gratis`)}
@@ -3362,7 +3378,7 @@ function VistaAlumno({ token }) {
   };
 
   return (<div>
-    <div className="topbar"><div className="brand"><h1>AppTrainner</h1><span className="hola">tu rutina</span>
+    <div className="topbar"><div className="brand"><h1>SmartTrainner</h1><span className="hola">tu rutina</span>
       <div className="derecha"><BotonTema /></div></div></div>
     <div className="wrap angosto">
       <h2>Hola, {(d.nombre || '').split(' ')[0]}</h2>
@@ -3550,7 +3566,7 @@ function App() {
   return (<div>
     <div className="topbar">
       <div className="brand">
-        <h1>AppTrainner</h1>
+        <h1>SmartTrainner</h1>
         <span className="hola">{perfil ? perfil.nombre : ''}</span>
         <div className="derecha">
           <BotonTema />
