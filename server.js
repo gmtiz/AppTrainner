@@ -499,8 +499,13 @@ const data = {
     return data.rutinaCompleta(cuentaId, id);
   },
 
-  editarRutina: (cuentaId, id, { nombre }) =>
-    data.run('UPDATE rutinas SET nombre = ? WHERE id = ? AND cuenta_id = ?', [String(nombre).trim(), id, cuentaId]),
+  async editarRutina(cuentaId, id, { nombre }) {
+    const r = (await data.q('SELECT id FROM rutinas WHERE id = ? AND cuenta_id = ?', [id, cuentaId]))[0];
+    if (!r) return false;
+    await data.run('UPDATE rutinas SET nombre = ? WHERE id = ? AND cuenta_id = ?',
+      [String(nombre).trim(), id, cuentaId]);
+    return true;
+  },
 
   async borrarRutina(cuentaId, id) {
     const r = (await data.q('SELECT id FROM rutinas WHERE id = ? AND cuenta_id = ?', [id, cuentaId]))[0];
@@ -761,9 +766,13 @@ const data = {
     return data.plantillaCompleta(cuentaId, id);
   },
 
-  editarPlantilla: (cuentaId, id, { nombre }) =>
-    data.run('UPDATE plantillas SET nombre = ? WHERE id = ? AND cuenta_id = ?',
-      [String(nombre).trim(), id, cuentaId]),
+  async editarPlantilla(cuentaId, id, { nombre }) {
+    const p = (await data.q('SELECT id FROM plantillas WHERE id = ? AND cuenta_id = ?', [id, cuentaId]))[0];
+    if (!p) return false;
+    await data.run('UPDATE plantillas SET nombre = ? WHERE id = ? AND cuenta_id = ?',
+      [String(nombre).trim(), id, cuentaId]);
+    return true;
+  },
 
   plantillaDia: async (cuentaId, id) =>
     (await data.q('SELECT * FROM plantilla_dias WHERE id = ? AND cuenta_id = ?', [id, cuentaId]))[0],
@@ -1583,7 +1592,10 @@ app.post('/api/clientes/:id/rutinas', auth, ruta(async (req, res) => {
 }));
 
 app.patch('/api/rutinas/:id', auth, ruta(async (req, res) => {
-  await data.editarRutina(req.cuentaId, req.params.id, req.body);
+  if (!String((req.body || {}).nombre || '').trim())
+    return res.status(400).json({ error: 'Poné un nombre a la rutina.' });
+  if (!await data.editarRutina(req.cuentaId, req.params.id, req.body))
+    return res.status(404).json({ error: 'No encontramos esa rutina.' });
   res.json({ ok: true });
 }));
 
@@ -1694,7 +1706,10 @@ app.post('/api/plantillas', auth, ruta(async (req, res) => {
 }));
 
 app.patch('/api/plantillas/:id', auth, ruta(async (req, res) => {
-  await data.editarPlantilla(req.cuentaId, req.params.id, req.body);
+  if (!String((req.body || {}).nombre || '').trim())
+    return res.status(400).json({ error: 'Poné un nombre a la plantilla.' });
+  if (!await data.editarPlantilla(req.cuentaId, req.params.id, req.body))
+    return res.status(404).json({ error: 'No encontramos esa plantilla.' });
   res.json({ ok: true });
 }));
 

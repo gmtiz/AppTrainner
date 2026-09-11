@@ -477,6 +477,108 @@ check('el alumno conserva la rutina que le habiamos armado',
 check('con sus ejercicios intactos',
   (await call('/rutinas/' + desdeVacia.data.id, { token: pt1 })).data.dias[0].items.length === 1);
 
+console.log('\n== RENOMBRAR SIN TENER QUE BORRAR Y REHACER ==');
+// Plantillas
+const plRen = await call('/plantillas', { method: 'POST', token: pt1, body: { nombre: 'Nombre viejo', dias: [{ nombre: 'Día A' }] } });
+check('la plantilla arranca con el nombre puesto', plRen.data.nombre === 'Nombre viejo');
+const dRen2 = plRen.data.dias[0].id;
+await call('/plantilla-dias/' + dRen2 + '/items', { method: 'POST', token: pt1, body: { ejercicio_id: e1.data.id, series: '3', reps: '10' } });
+check('renombrar la plantilla', (await call('/plantillas/' + plRen.data.id, { method: 'PATCH', token: pt1, body: { nombre: 'Nombre nuevo' } })).status === 200);
+const plTras = await call('/plantillas/' + plRen.data.id, { token: pt1 });
+check('el nombre nuevo quedo guardado', plTras.data.nombre === 'Nombre nuevo');
+check('renombrar no toca los dias', plTras.data.dias.length === 1);
+check('ni los ejercicios de adentro', plTras.data.dias[0].items.length === 1);
+check('el nombre nuevo aparece en el listado',
+  (await call('/plantillas', { token: pt1 })).data.some(x => x.id === plRen.data.id && x.nombre === 'Nombre nuevo'));
+check('no se crea una plantilla de mas al renombrar',
+  (await call('/plantillas', { token: pt1 })).data.filter(x => x.id === plRen.data.id).length === 1);
+
+check('nombre vacio se rechaza', (await call('/plantillas/' + plRen.data.id, { method: 'PATCH', token: pt1, body: { nombre: '' } })).status === 400);
+check('nombre con solo espacios se rechaza', (await call('/plantillas/' + plRen.data.id, { method: 'PATCH', token: pt1, body: { nombre: '    ' } })).status === 400);
+check('sin mandar nombre se rechaza', (await call('/plantillas/' + plRen.data.id, { method: 'PATCH', token: pt1, body: {} })).status === 400);
+check('cuerpo vacio se rechaza', (await call('/plantillas/' + plRen.data.id, { method: 'PATCH', token: pt1 })).status === 400);
+check('el mensaje explica que falta', /nombre/i.test((await call('/plantillas/' + plRen.data.id, { method: 'PATCH', token: pt1, body: { nombre: '' } })).data.error));
+check('tras los rechazos el nombre sigue intacto',
+  (await call('/plantillas/' + plRen.data.id, { token: pt1 })).data.nombre === 'Nombre nuevo');
+
+check('renombrar una plantilla que no existe da 404',
+  (await call('/plantillas/no-existe', { method: 'PATCH', token: pt1, body: { nombre: 'X' } })).status === 404);
+check('otra cuenta no puede renombrar mi plantilla',
+  (await call('/plantillas/' + plRen.data.id, { method: 'PATCH', token: pt2, body: { nombre: 'Robada' } })).status === 404);
+check('y el nombre no cambio',
+  (await call('/plantillas/' + plRen.data.id, { token: pt1 })).data.nombre === 'Nombre nuevo');
+check('sin sesion no se puede renombrar',
+  (await call('/plantillas/' + plRen.data.id, { method: 'PATCH', body: { nombre: 'X' } })).status === 401);
+
+check('el nombre se guarda sin espacios de sobra',
+  (await call('/plantillas/' + plRen.data.id, { method: 'PATCH', token: pt1, body: { nombre: '   Con espacios   ' } })).status === 200);
+check('y quedo recortado', (await call('/plantillas/' + plRen.data.id, { token: pt1 })).data.nombre === 'Con espacios');
+check('acepta acentos y enie',
+  (await call('/plantillas/' + plRen.data.id, { method: 'PATCH', token: pt1, body: { nombre: 'Piernas y glúteos — año 2' } })).status === 200);
+check('y los guarda tal cual',
+  (await call('/plantillas/' + plRen.data.id, { token: pt1 })).data.nombre === 'Piernas y glúteos — año 2');
+
+// Renombrar no debe afectar a las rutinas ya asignadas desde esa plantilla.
+const asignada = await call('/plantillas/' + plRen.data.id + '/usar', { method: 'POST', token: pt1, body: { cliente_id: cl1.data.id, nombre: 'Copia del alumno' } });
+await call('/plantillas/' + plRen.data.id, { method: 'PATCH', token: pt1, body: { nombre: 'Renombrada despues' } });
+check('renombrar la plantilla no renombra la rutina ya asignada',
+  (await call('/rutinas/' + asignada.data.id, { token: pt1 })).data.nombre === 'Copia del alumno');
+
+// Rutinas: mismo hueco, encontrado al auditar. El endpoint existia pero sin validar.
+console.log('-- rutinas --');
+check('renombrar una rutina', (await call('/rutinas/' + asignada.data.id, { method: 'PATCH', token: pt1, body: { nombre: 'Mes 3' } })).status === 200);
+const rutTras = await call('/rutinas/' + asignada.data.id, { token: pt1 });
+check('el nombre nuevo quedo guardado', rutTras.data.nombre === 'Mes 3');
+check('renombrar no toca los dias de la rutina', rutTras.data.dias.length === 1);
+check('rutina: nombre vacio se rechaza', (await call('/rutinas/' + asignada.data.id, { method: 'PATCH', token: pt1, body: { nombre: '  ' } })).status === 400);
+check('rutina: sin nombre se rechaza', (await call('/rutinas/' + asignada.data.id, { method: 'PATCH', token: pt1, body: {} })).status === 400);
+check('rutina inexistente da 404 al renombrar', (await call('/rutinas/no-existe', { method: 'PATCH', token: pt1, body: { nombre: 'X' } })).status === 404);
+check('otra cuenta no puede renombrar mi rutina',
+  (await call('/rutinas/' + asignada.data.id, { method: 'PATCH', token: pt2, body: { nombre: 'Robada' } })).status === 404);
+check('y el nombre de la rutina no cambio',
+  (await call('/rutinas/' + asignada.data.id, { token: pt1 })).data.nombre === 'Mes 3');
+check('el nombre nuevo se ve en la ficha del alumno',
+  (await call('/clientes/' + cl1.data.id, { token: pt1 })).data.rutinas.some(x => x.nombre === 'Mes 3'));
+
+// Nunca mas se debe poder escribir "undefined" en la base por mandar el body incompleto.
+check('nunca queda el texto "undefined" como nombre',
+  !(await call('/plantillas', { token: pt1 })).data.some(x => x.nombre === 'undefined')
+  && (await call('/rutinas/' + asignada.data.id, { token: pt1 })).data.nombre !== 'undefined');
+
+await call('/plantillas/' + plRen.data.id, { method: 'DELETE', token: pt1 });
+
+console.log('\n== PANTALLAS: SE PUEDE RENOMBRAR DESDE LA INTERFAZ ==');
+{
+  const fs = await import('node:fs');
+  let html = '';
+  for (const ruta of ['public/index.html', 'index.html'])
+    try { html = fs.readFileSync(ruta, 'utf8'); break; } catch {}
+  const trozo = (desde, hasta) => {
+    const a = html.indexOf(desde); const b = html.indexOf(hasta, a + 1);
+    return a >= 0 && b > a ? html.slice(a, b) : '';
+  };
+  const ep = trozo('function EditorPlantilla', 'function Plantillas(');
+  const er = trozo('function Editor({', 'function repartirEnColumnas');
+
+  check('el editor de plantillas tiene boton para cambiar el nombre', />Cambiar nombre</.test(ep));
+  check('y llama al endpoint correcto', /api\('\/plantillas\/' \+ id, \{ method: 'PATCH'/.test(ep));
+  check('con un modal para escribirlo', /Nombre de la plantilla/.test(ep));
+  check('no deja guardar el nombre vacio', /disabled=\{!nombreForm\.trim\(\)\}/.test(ep));
+  check('refresca el listado despues de renombrar', /guardarNombre[\s\S]{0,400}await recargar\(\)/.test(ep));
+
+  check('el editor de rutinas tambien deja renombrar', />Cambiar nombre</.test(er));
+  check('y llama al endpoint de rutinas', /api\('\/rutinas\/' \+ id, \{ method: 'PATCH'/.test(er));
+  check('con su propio modal', /Nombre de la rutina/.test(er));
+
+  // Las secciones que ya se podian editar tienen que seguir pudiendo.
+  for (const [que, patron] of [['grupos', /api\('\/grupos\/'[\s\S]{0,80}PATCH/],
+                               ['ejercicios', /api\('\/ejercicios\/'[\s\S]{0,80}PATCH/],
+                               ['alumnos', /api\('\/clientes\/'[\s\S]{0,80}PATCH/],
+                               ['dias de rutina', /api\('\/dias\/'[\s\S]{0,80}PATCH/],
+                               ['dias de plantilla', /api\('\/plantilla-dias\/'[\s\S]{0,80}PATCH/]])
+    check('sigue pudiendo editar ' + que, patron.test(html));
+}
+
 console.log('\n== IMPORTACION GENERAL ==');
 const vacio = await call('/importar', { method: 'POST', token: pt2, body: {} });
 check('archivo sin datos se rechaza', vacio.status === 400);
