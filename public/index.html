@@ -2036,6 +2036,7 @@ function Editor({ id, volver, ejercicios, grupos, recargarEjercicios }) {
   const [busq, setBusq] = useState({});
   const [form, setForm] = useState(null);
   const [diaForm, setDiaForm] = useState(null);
+  const [nombreForm, setNombreForm] = useState(null);
   const arrastrando = useRef(null);
   const { avisar, confirmar } = usarAviso();
 
@@ -2049,6 +2050,16 @@ function Editor({ id, volver, ejercicios, grupos, recargarEjercicios }) {
   }, [id, avisar]);
   useEffect(() => { cargar(); }, [cargar]);
   if (!r) return <p className="suave">Cargando...</p>;
+
+  async function guardarNombre() {
+    const limpio = (nombreForm || '').trim();
+    if (!limpio) { avisar('Poné un nombre a la rutina.', 'mal'); return; }
+    if (limpio === r.nombre) { setNombreForm(null); return; }
+    try {
+      await api('/rutinas/' + id, { method: 'PATCH', body: { nombre: limpio } });
+      setNombreForm(null); cargar(); avisar('Nombre actualizado');
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
 
   async function guardarItem() {
     try {
@@ -2108,7 +2119,10 @@ function Editor({ id, volver, ejercicios, grupos, recargarEjercicios }) {
 
   return (<div>
     <button className="volver" onClick={volver}>← Volver a la ficha</button>
-    <h2>{r.nombre}</h2>
+    <div className="row" style={{ marginBottom: 4 }}>
+      <h2 style={{ margin: 0 }}>{r.nombre}</h2>
+      <button className="btn linea chico" onClick={() => setNombreForm(r.nombre)}>Cambiar nombre</button>
+    </div>
     <p className="suave" style={{ marginBottom: 18 }}>
       Tocá un ejercicio para cambiarle series o repeticiones. Arrastralo (o usá las flechas) para reordenar.
     </p>
@@ -2217,6 +2231,14 @@ function Editor({ id, volver, ejercicios, grupos, recargarEjercicios }) {
             onClick={() => quitar({ id: form.item_id, ejercicio: form.titulo })}>Sacar de la rutina</button>}
       </Modal>}
 
+    {nombreForm !== null &&
+      <Modal titulo="Cambiar nombre" cerrar={() => setNombreForm(null)}>
+        <label>Nombre de la rutina
+          <input autoFocus value={nombreForm} maxLength={80}
+            onChange={e => setNombreForm(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') guardarNombre(); }} /></label>
+        <button className="btn" onClick={guardarNombre} disabled={!nombreForm.trim()}>Guardar</button>
+      </Modal>}
     {diaForm &&
       <Modal titulo={diaForm.id ? 'Editar día' : 'Nuevo día'} cerrar={() => setDiaForm(null)}>
         <label>Nombre<input autoFocus value={diaForm.nombre || ''}
@@ -2478,6 +2500,7 @@ function EditorPlantilla({ id, volver, ejercicios, grupos, recargarEjercicios, r
   const [busq, setBusq] = useState({});
   const [form, setForm] = useState(null);
   const [diaForm, setDiaForm] = useState(null);
+  const [nombreForm, setNombreForm] = useState(null);
   const arrastrando = useRef(null);
   const { avisar, confirmar } = usarAviso();
 
@@ -2486,6 +2509,16 @@ function EditorPlantilla({ id, volver, ejercicios, grupos, recargarEjercicios, r
   }, [id, avisar]);
   useEffect(() => { cargar(); }, [cargar]);
   if (!p) return <p className="suave">Cargando...</p>;
+
+  async function guardarNombre() {
+    const limpio = (nombreForm || '').trim();
+    if (!limpio) { avisar('Poné un nombre a la plantilla.', 'mal'); return; }
+    if (limpio === p.nombre) { setNombreForm(null); return; }
+    try {
+      await api('/plantillas/' + id, { method: 'PATCH', body: { nombre: limpio } });
+      setNombreForm(null); cargar(); await recargar(); avisar('Nombre actualizado');
+    } catch (e) { avisar(e.message, 'mal'); }
+  }
 
   async function guardarItem() {
     try {
@@ -2541,7 +2574,10 @@ function EditorPlantilla({ id, volver, ejercicios, grupos, recargarEjercicios, r
 
   return (<div>
     <button className="volver" onClick={volver}>← Tus plantillas</button>
-    <h2>{p.nombre}</h2>
+    <div className="row" style={{ marginBottom: 4 }}>
+      <h2 style={{ margin: 0 }}>{p.nombre}</h2>
+      <button className="btn linea chico" onClick={() => setNombreForm(p.nombre)}>Cambiar nombre</button>
+    </div>
     <p className="suave" style={{ marginBottom: 18 }}>
       Armala una vez y usala con cualquier alumno, ahora o más adelante.
     </p>
@@ -2629,6 +2665,15 @@ function EditorPlantilla({ id, volver, ejercicios, grupos, recargarEjercicios, r
         {form.item_id &&
           <button className="btn riesgo" style={{ marginTop: 10 }}
             onClick={() => quitar({ id: form.item_id, ejercicio: form.titulo })}>Sacar de la plantilla</button>}
+      </Modal>}
+
+    {nombreForm !== null &&
+      <Modal titulo="Cambiar nombre" cerrar={() => setNombreForm(null)}>
+        <label>Nombre de la plantilla
+          <input autoFocus value={nombreForm} maxLength={80}
+            onChange={e => setNombreForm(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') guardarNombre(); }} /></label>
+        <button className="btn" onClick={guardarNombre} disabled={!nombreForm.trim()}>Guardar</button>
       </Modal>}
 
     {diaForm &&
