@@ -1,4 +1,4 @@
-// Pruebas automáticas de AppTrainner.
+// Pruebas automáticas de SmartTrainner.
 // Uso:
 //   1) levantá el servidor:  TURSO_URL="file:test.db" JWT_SECRET="test123456" PORT=3210 npm start
 //   2) en otra terminal:     node pruebas.js
@@ -577,6 +577,77 @@ console.log('\n== PANTALLAS: SE PUEDE RENOMBRAR DESDE LA INTERFAZ ==');
                                ['dias de rutina', /api\('\/dias\/'[\s\S]{0,80}PATCH/],
                                ['dias de plantilla', /api\('\/plantilla-dias\/'[\s\S]{0,80}PATCH/]])
     check('sigue pudiendo editar ' + que, patron.test(html));
+}
+
+console.log('\n== NOMBRE DE LA APLICACION ==');
+{
+  const fs = await import('node:fs');
+  const leer = nombres => {
+    for (const n of nombres) try { return fs.readFileSync(n, 'utf8'); } catch {}
+    return '';
+  };
+  const html = leer(['public/index.html', 'index.html']);
+  const srv = leer(['server.js']);
+  check('encuentra los archivos para revisar el nombre', !!html && !!srv);
+
+  // Nada del nombre viejo, salvo las dos constantes de migracion que lo necesitan.
+  const restos = html.split('\n')
+    .map((l, i) => [i + 1, l])
+    .filter(([, l]) => /apptrainner/i.test(l) && !/CLAVE_VIEJA|TEMA_VIEJO/.test(l));
+  check('no queda el nombre viejo en la interfaz', restos.length === 0,
+    restos.map(([n, l]) => 'linea ' + n + ': ' + l.trim()).join(' | '));
+  check('no queda el nombre viejo en el servidor', !/apptrainner/i.test(srv),
+    (srv.match(/.*apptrainner.*/i) || [''])[0].trim());
+
+  // Los lugares visibles, uno por uno.
+  check('el titulo de la pestaña dice SmartTrainner', /<title>SmartTrainner<\/title>/.test(html));
+  check('la marca del panel dice SmartTrainner', /marca-lado">SmartTrainner</.test(html));
+  check('la cabecera del alumno dice SmartTrainner', /<h1>SmartTrainner<\/h1>/.test(html));
+  check('hay dos pies de pagina impresos renombrados',
+    (html.match(/pie-impreso">SmartTrainner</g) || []).length === 2);
+  check('el texto de metricas nombra SmartTrainner', /de un vistazo/.test(html) && /en SmartTrainner/.test(html));
+  check('el Excel exportado se llama smarttrainner-...', /'smarttrainner-'/.test(html));
+  check('el asunto del mail dice SmartTrainner', /contraseña de SmartTrainner/.test(srv));
+  check('el remitente del mail dice SmartTrainner', /'SmartTrainner <.*>'/.test(srv));
+  check('el host de respaldo del mail se renombro', /\|\| 'smarttrainner'\)/.test(srv));
+  check('el aviso de arranque dice SmartTrainner', /SmartTrainner escuchando/.test(srv));
+
+  // Migracion: renombrar no puede desloguear ni perder el tema elegido.
+  check('la clave de sesion nueva se llama smarttrainner_token', /const CLAVE = 'smarttrainner_token'/.test(html));
+  check('se migra la sesion guardada con el nombre viejo',
+    /CLAVE_VIEJA[\s\S]{0,400}localStorage\.setItem\(CLAVE, viejo\)/.test(html));
+  check('y se borra la clave vieja despues de migrarla',
+    /localStorage\.removeItem\(CLAVE_VIEJA\)/.test(html));
+  check('la clave del tema nueva se llama smarttrainner_tema', /const TEMA = 'smarttrainner_tema'/.test(html));
+  check('se migra el tema elegido con el nombre viejo',
+    /TEMA_VIEJO[\s\S]{0,400}localStorage\.setItem\(TEMA, t\)/.test(html));
+
+  // La migracion corrida de verdad, con un localStorage de mentira.
+  const bloque = html.slice(html.indexOf("const CLAVE = 'smarttrainner_token'"),
+                            html.indexOf('async function api('));
+  const correr = guardado => {
+    const store = { ...guardado };
+    const localStorage = {
+      getItem: k => (k in store ? store[k] : null),
+      setItem: (k, v) => { store[k] = String(v); },
+      removeItem: k => { delete store[k]; },
+    };
+    const sesion = new Function('localStorage', bloque + '\nreturn sesion;')(localStorage);
+    return { sesion, store };
+  };
+  const migrado = correr({ apptrainner_token: 'abc123' });
+  check('un usuario con el token viejo sigue adentro', migrado.sesion === 'abc123');
+  check('su token quedo bajo el nombre nuevo', migrado.store.smarttrainner_token === 'abc123');
+  check('y ya no queda duplicado con el nombre viejo', !('apptrainner_token' in migrado.store));
+
+  const yaNuevo = correr({ smarttrainner_token: 'nuevo9' });
+  check('quien ya tiene el token nuevo no se toca', yaNuevo.sesion === 'nuevo9');
+
+  const ambos = correr({ smarttrainner_token: 'nuevo9', apptrainner_token: 'viejo1' });
+  check('si estan los dos gana el nuevo', ambos.sesion === 'nuevo9');
+
+  const limpio2 = correr({});
+  check('sin nada guardado no inventa sesion', limpio2.sesion === null);
 }
 
 console.log('\n== IMPORTACION GENERAL ==');

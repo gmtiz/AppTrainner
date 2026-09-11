@@ -1,4 +1,4 @@
-// server.js — AppTrainner
+// server.js — SmartTrainner
 // Node.js + Express + Turso (@libsql/client) + JWT
 //
 // Variables de entorno:
@@ -259,7 +259,7 @@ function linkSeguro(url) {
    Si no hay ninguno, el link queda en el log del servidor y se puede
    generar a mano desde el panel de administración.
 ------------------------------------------------------------------- */
-const MAIL_DESDE = process.env.MAIL_DESDE || 'AppTrainner <onboarding@resend.dev>';
+const MAIL_DESDE = process.env.MAIL_DESDE || 'SmartTrainner <onboarding@resend.dev>';
 
 async function enviarMail({ para, asunto, texto, html }) {
   if (process.env.RESEND_API_KEY) {
@@ -278,7 +278,7 @@ async function enviarMail({ para, asunto, texto, html }) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'api-key': process.env.BREVO_API_KEY },
       body: JSON.stringify({
-        sender: { name: m ? m[1] : 'AppTrainner', email: m ? m[2] : MAIL_DESDE },
+        sender: { name: m ? m[1] : 'SmartTrainner', email: m ? m[2] : MAIL_DESDE },
         to: [{ email: para }], subject: asunto, textContent: texto, htmlContent: html })
     });
     if (!r.ok) throw new Error('Brevo respondió ' + r.status);
@@ -1323,12 +1323,12 @@ app.post('/api/recuperar', ruta(async (req, res) => {
     'INSERT INTO recuperaciones (id, cuenta_id, token_hash, creado, expira) VALUES (?,?,?,?,?)',
     [uid(), c.id, hashToken(token), ahora(), expira]);
 
-  const base = process.env.URL_APP || ('https://' + (req.headers.host || 'apptrainner'));
+  const base = process.env.URL_APP || ('https://' + (req.headers.host || 'smarttrainner'));
   const link = base + '/?recuperar=' + token;
   try {
     await enviarMail({
       para: c.email,
-      asunto: 'Cambiar tu contraseña de AppTrainner',
+      asunto: 'Cambiar tu contraseña de SmartTrainner',
       texto: `Hola ${c.nombre}:\n\nEntrá acá para poner una contraseña nueva:\n${link}\n\n` +
              `El link vence en una hora y se puede usar una sola vez.\n` +
              `Si no pediste esto, ignorá el mail: tu contraseña sigue igual.`,
@@ -1369,7 +1369,7 @@ app.post('/api/admin/cuentas/:id/recuperacion', auth, soloAdmin, ruta(async (req
   await data.run(
     'INSERT INTO recuperaciones (id, cuenta_id, token_hash, creado, expira) VALUES (?,?,?,?,?)',
     [uid(), c.id, hashToken(token), ahora(), new Date(Date.now() + 60 * 60000).toISOString()]);
-  const base = process.env.URL_APP || ('https://' + (req.headers.host || 'apptrainner'));
+  const base = process.env.URL_APP || ('https://' + (req.headers.host || 'smarttrainner'));
   res.json({ link: base + '/?recuperar=' + token });
 }));
 
@@ -2209,5 +2209,5 @@ process.on('unhandledRejection', e => console.error('Promesa sin capturar:', e))
 
 const PORT = process.env.PORT || 3000;
 prepararBase()
-  .then(() => app.listen(PORT, () => console.log('AppTrainner escuchando en el puerto ' + PORT)))
+  .then(() => app.listen(PORT, () => console.log('SmartTrainner escuchando en el puerto ' + PORT)))
   .catch(e => { console.error('No pudimos preparar la base:', e.message); process.exit(1); });
